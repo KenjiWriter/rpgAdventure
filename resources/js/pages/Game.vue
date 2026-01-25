@@ -66,7 +66,15 @@ onMounted(() => {
                                 </div>
                                 <div class="flex-1 relative group/log">
                                     <p class="text-slate-200">
-                                        <span v-if="log.type === 'loot' && log.metadata?.item_name" class="cursor-help text-amber-400 font-bold border-b border-amber-400/30 border-dashed">
+                                        <span v-if="log.type === 'loot' && log.metadata?.item_name" class="cursor-help font-bold border-b border-dashed relative"
+                                            :class="{
+                                                'text-slate-300 border-slate-300': !log.metadata.stats?.rarity || log.metadata.stats.rarity === 'common',
+                                                'text-green-400 border-green-400': log.metadata.stats?.rarity === 'uncommon',
+                                                'text-blue-400 border-blue-400': log.metadata.stats?.rarity === 'rare',
+                                                'text-purple-400 border-purple-400': log.metadata.stats?.rarity === 'epic',
+                                                'text-amber-400 border-amber-400': log.metadata.stats?.rarity === 'legendary',
+                                            }"
+                                        >
                                             Found {{ log.metadata.item_name }}!
                                             
                                             <!-- Tooltip -->

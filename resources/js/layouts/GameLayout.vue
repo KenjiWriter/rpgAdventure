@@ -39,10 +39,17 @@ function startTimer(endsAtStr: string) {
     stopTimer();
     const endsAt = new Date(endsAtStr).getTime();
     
+    // Initial update
+    const now = Date.now();
+    const diff = endsAt - now;
+    missionTimeLeft.value = Math.max(0, Math.ceil(diff / 1000));
+    updateDocumentTitle();
+
     missionInterval = setInterval(() => {
         const now = Date.now();
         const diff = endsAt - now;
         missionTimeLeft.value = Math.max(0, Math.ceil(diff / 1000));
+        updateDocumentTitle();
         
         if (missionTimeLeft.value <= 0) {
             stopTimer(); // Timer done, wait for claim
@@ -53,6 +60,22 @@ function startTimer(endsAtStr: string) {
 function stopTimer() {
     if (missionInterval) clearInterval(missionInterval);
     missionTimeLeft.value = 0;
+    updateDocumentTitle();
+}
+
+function updateDocumentTitle() {
+    if (activeMission.value && missionTimeLeft.value > 0) {
+        // We can get map name if we fetch map data or store it.
+        // For now using just generic or activeMission map_id if we have map name in mission (we don't stored it directly but maybe relation?)
+        // Mission model has map relation. If eager loaded.
+        // Let's assume generic "Mission" or try map ID.
+        // Actually, let's use a cleaner format.
+        const minutes = Math.floor(missionTimeLeft.value / 60).toString().padStart(2, '0');
+        const seconds = (missionTimeLeft.value % 60).toString().padStart(2, '0');
+        document.title = `RPG Game | [${minutes}:${seconds}] In Combat`;
+    } else {
+        document.title = 'RPG Game | Dashboard';
+    }
 }
 
 const missionReady = computed(() => !!activeMission.value && missionTimeLeft.value <= 0);

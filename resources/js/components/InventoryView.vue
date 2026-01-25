@@ -246,17 +246,22 @@ const getItemInBackpackSlot = (slotIndex: number) => {
                 </div>
             </div>
             
-            <!-- Context Menu -->
-            <div v-if="contextMenu.show" 
-                 class="fixed z-50 bg-slate-800 border border-slate-600 rounded shadow-2xl py-1 text-sm min-w-[120px]"
-                 :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }">
-                 <button class="w-full text-left px-4 py-2 hover:bg-slate-700 text-white flex items-center gap-2" @click="handleItemClick(contextMenu.item, 'backpack')">
-                    ⚔️ Equip
-                 </button>
-                 <button class="w-full text-left px-4 py-2 hover:bg-slate-700 text-red-400 flex items-center gap-2 cursor-not-allowed opacity-50">
-                    🗑️ Trash (Soon)
-                 </button>
-            </div>
+            <!-- Context Menu Backdrop -->
+            <Teleport to="body">
+                <div v-if="contextMenu.show" class="fixed inset-0 z-[60] bg-transparent" @click="closeContextMenu" @contextmenu.prevent="closeContextMenu"></div>
+                
+                <!-- Context Menu -->
+                <div v-if="contextMenu.show" 
+                     class="fixed z-[70] bg-slate-800 border border-slate-600 rounded shadow-2xl py-1 text-sm min-w-[120px]"
+                     :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }">
+                     <button class="w-full text-left px-4 py-2 hover:bg-slate-700 text-white flex items-center gap-2" @click="handleItemClick(contextMenu.item, 'backpack')">
+                        ⚔️ Equip
+                     </button>
+                     <button class="w-full text-left px-4 py-2 hover:bg-slate-700 text-red-400 flex items-center gap-2 cursor-not-allowed opacity-50">
+                        🗑️ Trash (Soon)
+                     </button>
+                </div>
+            </Teleport>
 
             <div class="mt-4 flex justify-between items-center text-xs text-slate-500">
                 <span>{{ store.backpackSlotsUsed }} / {{ store.backpackSlotsTotal }} Slots Used</span>
