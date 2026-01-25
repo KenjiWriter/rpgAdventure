@@ -69,8 +69,7 @@ class CharacterController extends Controller
         return response()->json([
             'character' => $character,
             'computed_stats' => $character->stats->computed_stats ?? [],
-            // Note: computed_stats is already in $character->stats, but flattening it might be nice.
-            // I'll keep it under stats for structure.
+            'merchant_expires_at' => $character->merchantItems()->max('expires_at') // Get latest expiry
         ]);
     }
     public function logs(string $id): JsonResponse

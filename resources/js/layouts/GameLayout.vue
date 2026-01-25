@@ -63,40 +63,54 @@ function stopTimer() {
     updateDocumentTitle();
 }
 
-function updateDocumentTitle() {
-    if (activeMission.value && missionTimeLeft.value > 0) {
-        // We can get map name if we fetch map data or store it.
-        // For now using just generic or activeMission map_id if we have map name in mission (we don't stored it directly but maybe relation?)
-        // Mission model has map relation. If eager loaded.
-        // Let's assume generic "Mission" or try map ID.
-        // Actually, let's use a cleaner format.
-        const minutes = Math.floor(missionTimeLeft.value / 60).toString().padStart(2, '0');
-        const seconds = (missionTimeLeft.value % 60).toString().padStart(2, '0');
-        document.title = `RPG Game | [${minutes}:${seconds}] In Combat`;
-    } else {
-        document.title = 'RPG Game | Dashboard';
+
+    function updateDocumentTitle() {
+        if (activeMission.value) {
+            if (missionTimeLeft.value > 0) {
+                const minutes = Math.floor(missionTimeLeft.value / 60).toString().padStart(2, '0');
+                const seconds = (missionTimeLeft.value % 60).toString().padStart(2, '0');
+                document.title = `RPG Game | [${minutes}:${seconds}] In Combat`;
+            } else {
+                 document.title = `RPG Game | [READY] Battle!`;
+            }
+        } else {
+            document.title = 'RPG Game | Dashboard';
+        }
     }
-}
+    
+    const missionReady = computed(() => !!activeMission.value && missionTimeLeft.value <= 0);
 
-const missionReady = computed(() => !!activeMission.value && missionTimeLeft.value <= 0);
-
-// Navigation Interception
-function handleNav(href: string) {
-    if (activeMission.value && href.includes('map')) {
-        // We are already on map/mission view? 
-        // If not, go there.
-        // Actually, MissionView IS inside WorldMap. So just going to 'map' is correct.
+    // Navigation Interception
+    function handleNav(href: string) {
+        if (activeMission.value && href.includes('map')) {
+            // Logic placeholder
+        }
     }
-}
-// Using standard Links but adding indicators.
+    
+    // Tutorial Pulse Logic
+    const showMerchantPulse = computed(() => {
+        return store.character?.gold === 100 && (store.equipment.length === 0 || store.equipment.length === undefined); 
+    });
 
-const navItems = [
-    { name: 'Dashboard', icon: User, href: route('home') },
-    { name: 'Map', icon: MapIcon, href: route('map') },
-    { name: 'Quests', icon: Scroll, href: route('quests') },
-];
-</script>
+    const isMerchantFresh = computed(() => {
+        if (!store.merchantExpiry) return false;
+        // If expiry > 55 mins from now, it was refreshed in last 5 mins
+        const expiry = new Date(store.merchantExpiry).getTime();
+        const now = Date.now();
+        const diff = expiry - now;
+        // 60 mins = 3600000 ms. 
+        // If diff > 55 mins (3300000), then it's fresh.
+        return diff > 3300000;
+    });
 
+    const navItems = [
+        { name: 'Dashboard', icon: User, href: route('home') },
+        { name: 'Map', icon: MapIcon, href: route('map') },
+        { name: 'Quests', icon: Scroll, href: route('quests') },
+        { name: 'Merchant', icon: ShoppingBag, href: route('merchant.index') },
+    ];
+    </script>
+    
 <template>
     <div class="min-h-screen bg-slate-950 text-zinc-100 font-sans selection:bg-red-900 selection:text-white">
         <!-- Top Bar -->
@@ -170,13 +184,16 @@ const navItems = [
         <div class="flex h-[calc(100vh-64px)] overflow-hidden">
             <!-- Sidebar -->
             <aside class="w-20 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-6 gap-6 z-40">
-                <Link 
-                    v-for="item in navItems" 
-                    :key="item.name"
-                    :href="item.href"
-                    class="group relative flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 text-slate-400 hover:bg-indigo-600 hover:text-white hover:shadow-lg hover:shadow-indigo-500/30"
-                    :class="{ 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30': route().current() === item.href.split('/').pop() }" 
-                >
+                    <Link 
+                        v-for="item in navItems" 
+                        :key="item.name"
+                        :href="item.href"
+                        class="group relative flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 text-slate-400 hover:bg-indigo-600 hover:text-white hover:shadow-lg hover:shadow-indigo-500/30"
+                        :class="{ 
+                            'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30': route().current() === item.href.split('/').pop(),
+                            'animate-pulse ring-2 ring-amber-400 ring-offset-2 ring-offset-slate-900': item.name === 'Merchant' && showMerchantPulse
+                        }" 
+                    >
                     <component :is="item.icon" class="w-6 h-6" />
                     
                     <!-- Sidebar Badges -->
@@ -185,6 +202,11 @@ const navItems = [
                          :class="missionReady ? 'bg-red-500 text-white animate-bounce' : 'bg-indigo-400 text-white'">
                         <span v-if="missionReady">!</span>
                         <span v-else>{{ missionTimeLeft }}</span>
+                    </div>
+
+                    <div v-if="item.name === 'Merchant' && isMerchantFresh"
+                         class="absolute -top-1 -right-1 w-fit px-1 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-slate-900 bg-emerald-500 text-white animate-pulse">
+                        NEW
                     </div>
 
                     <span class="absolute left-14 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap border border-slate-700">

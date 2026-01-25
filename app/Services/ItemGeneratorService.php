@@ -40,6 +40,16 @@ class ItemGeneratorService
         ]);
     }
 
+    public function previewInstanceAttributes(ItemTemplate $template, ItemRarity $rarity): array
+    {
+        $slotsCount = $this->rollSlotsCount($rarity);
+        $bonuses = [];
+        for ($i = 0; $i < $slotsCount; $i++) {
+            $bonuses[] = $this->rollBonus($template, $rarity);
+        }
+        return ['bonuses' => $bonuses];
+    }
+
     private function rollSlotsCount(ItemRarity $rarity): int
     {
         // Customizable Logic
@@ -48,8 +58,10 @@ class ItemGeneratorService
             ItemRarity::RARE => rand(1, 10) > 8 ? 3 : 2, // 2 slots guaranteed, 20% for 3
             ItemRarity::EPIC => rand(1, 10) > 8 ? 4 : 3, // 3 slots guaranteed, 20% for 4
             ItemRarity::LEGENDARY => rand(1, 10) > 5 ? 5 : 4, // 5 slots (50%), 4 guaranteed
+            default => 1, // Fallback
         };
     }
+
 
     private function rollBonus(ItemTemplate $template, ItemRarity $itemRarity): array
     {

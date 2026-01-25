@@ -269,7 +269,7 @@ function getHpPercentage(current: number, max: number) {
             <!-- Battlefield -->
             <div class="relative flex-1 flex gap-0 min-h-0">
                 <!-- Visual Field -->
-                <div class="flex-[2] relative flex flex-col justify-center items-center bg-[url('/assets/bg-combat.png')] bg-cover bg-center border-r border-slate-800">
+                <div class="flex-[2] relative flex flex-col justify-center items-center bg-cover bg-center border-r border-slate-800" :style="{ backgroundImage: 'url(/bg-combat.png)' }">
                     <!-- Overlay for text clarity -->
                     <div class="absolute inset-0 bg-slate-950/30"></div>
 

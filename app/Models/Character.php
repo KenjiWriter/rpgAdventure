@@ -52,4 +52,9 @@ class Character extends Model
     {
         return $this->hasMany(CharacterLog::class);
     }
+
+    public function merchantItems(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(MerchantItem::class);
+    }
 }

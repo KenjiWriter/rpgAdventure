@@ -12,6 +12,8 @@ class ItemTemplate extends Model
         'name',
         'type',
         'base_stats',
+        'base_damage',
+        'base_defense',
         'min_level',
         'class_restriction',
     ];

@@ -148,6 +148,18 @@ class CharacterService
         return $totalStats;
     }
 
+    public function findFreeSlot(Character $character): ?string
+    {
+        $maxSlots = $character->inventory_slots ?? 30;
+        $occupied = $character->items()->pluck('slot_id')->toArray();
+        for ($i = 1; $i <= $maxSlots; $i++) {
+            if (!in_array("backpack_$i", $occupied)) {
+                return "backpack_$i";
+            }
+        }
+        return null;
+    }
+
     public function logActivity(Character $character, string $type, string $message, array $metadata = []): void
     {
         \App\Models\CharacterLog::create([
@@ -162,29 +174,8 @@ class CharacterService
         $count = $character->logs()->count();
 
         if ($count > $logsToKeep) {
-            $logsToDelete = $character->logs()
-                ->latest()
-                ->skip($logsToKeep)
-                ->take($count - $logsToKeep) // Take all excess
-                ->get();
-
-            foreach ($logsToDelete as $log) {
-                $log->delete();
-            }
-            // Optimization: Delete by ID using a query would be faster, but this is explicit.
-            // Faster way:
-            // $character->logs()->latest()->skip($logsToKeep)->delete(); 
-            // wait, delete() with offset/limit is tricky in some SQL dialects but usually works or separate query.
-            // "delete ... limit" works, but skip/offset in delete is not consistent.
-            // Subquery is safer:
-            // CharacterLog::where('character_id', $character->id)
-            //     ->whereNotIn('id', function($q) use ($character, $logsToKeep) {
-            //         $q->select('id')->from('character_logs')->where('character_id', $character->id)->latest()->limit($logsToKeep);
-            // })->delete();
-            // Given the MVP nature, the iterative delete or just letting it slide to 50+ matches prompt "simple cleanup".
-            // I'll stick to a simple bulk delete if easy, or just `limit` check. 
-            // Actually, `latest()->skip(50)->delete()` doesn't work directly in Eloquent as 'delete' ignores 'skip'.
-            // So finding IDs is necessary.
+            // Simplified cleanup
+            $character->logs()->orderBy('created_at', 'asc')->limit($count - $logsToKeep)->delete();
         }
     }
 }

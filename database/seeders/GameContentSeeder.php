@@ -34,16 +34,16 @@ class GameContentSeeder extends Seeder
         // 2. Monsters
         // 2a. Whispering Fields (Level 1-3)
         $fieldsMonsters = [
-            ['name' => 'Starving Wolf', 'hp' => 25, 'min' => 2, 'max' => 5, 'spd' => 14, 'exp' => 15, 'gold' => 8, 'common_loot' => 0.2],
-            ['name' => 'Field Slime', 'hp' => 45, 'min' => 1, 'max' => 3, 'spd' => 8, 'exp' => 12, 'gold' => 5, 'common_loot' => 0.3],
-            ['name' => 'Angry Scarecrow', 'hp' => 35, 'min' => 3, 'max' => 6, 'spd' => 10, 'exp' => 18, 'gold' => 10, 'common_loot' => 0.2],
-            ['name' => 'Giant Locust', 'hp' => 15, 'min' => 4, 'max' => 7, 'spd' => 18, 'exp' => 14, 'gold' => 6, 'common_loot' => 0.1],
-            ['name' => 'Sickly Rat', 'hp' => 20, 'min' => 2, 'max' => 4, 'spd' => 12, 'exp' => 10, 'gold' => 4, 'common_loot' => 0.2],
-            ['name' => 'Possessed Hoe', 'hp' => 30, 'min' => 3, 'max' => 5, 'spd' => 9, 'exp' => 16, 'gold' => 9, 'common_loot' => 0.25],
-            ['name' => 'Wild Boar', 'hp' => 50, 'min' => 4, 'max' => 6, 'spd' => 7, 'exp' => 25, 'gold' => 15, 'rare_loot' => 0.05],
-            ['name' => 'Lost Sheep', 'hp' => 25, 'min' => 1, 'max' => 2, 'spd' => 8, 'exp' => 20, 'gold' => 2, 'common_loot' => 0.4], // Bonus exp pinata
-            ['name' => 'Thorn Bush', 'hp' => 40, 'min' => 2, 'max' => 3, 'spd' => 5, 'exp' => 15, 'gold' => 5, 'common_loot' => 0.2],
-            ['name' => 'Crazed Farmer', 'hp' => 55, 'min' => 5, 'max' => 8, 'spd' => 11, 'exp' => 35, 'gold' => 25, 'uncommon_loot' => 0.1], // Mini Boss
+            ['name' => 'Starving Wolf', 'hp' => 15, 'min' => 2, 'max' => 5, 'spd' => 14, 'exp' => 15, 'gold' => 8, 'common_loot' => 0.2], // 25 -> 15
+            ['name' => 'Field Slime', 'hp' => 30, 'min' => 1, 'max' => 3, 'spd' => 8, 'exp' => 12, 'gold' => 5, 'common_loot' => 0.3], // 45 -> 30
+            ['name' => 'Angry Scarecrow', 'hp' => 25, 'min' => 3, 'max' => 6, 'spd' => 10, 'exp' => 18, 'gold' => 10, 'common_loot' => 0.2], // 35 -> 25
+            ['name' => 'Giant Locust', 'hp' => 10, 'min' => 4, 'max' => 7, 'spd' => 18, 'exp' => 14, 'gold' => 6, 'common_loot' => 0.1], // 15 -> 10
+            ['name' => 'Sickly Rat', 'hp' => 10, 'min' => 2, 'max' => 4, 'spd' => 12, 'exp' => 10, 'gold' => 4, 'common_loot' => 0.2], // 20 -> 10
+            ['name' => 'Possessed Hoe', 'hp' => 20, 'min' => 3, 'max' => 5, 'spd' => 9, 'exp' => 16, 'gold' => 9, 'common_loot' => 0.25], // 30 -> 20
+            ['name' => 'Wild Boar', 'hp' => 35, 'min' => 4, 'max' => 6, 'spd' => 7, 'exp' => 25, 'gold' => 15, 'rare_loot' => 0.05], // 50 -> 35
+            ['name' => 'Lost Sheep', 'hp' => 15, 'min' => 1, 'max' => 2, 'spd' => 8, 'exp' => 20, 'gold' => 2, 'common_loot' => 0.4], // 25 -> 15
+            ['name' => 'Thorn Bush', 'hp' => 25, 'min' => 2, 'max' => 3, 'spd' => 5, 'exp' => 15, 'gold' => 5, 'common_loot' => 0.2], // 40 -> 25
+            ['name' => 'Crazed Farmer', 'hp' => 40, 'min' => 5, 'max' => 8, 'spd' => 11, 'exp' => 35, 'gold' => 25, 'uncommon_loot' => 0.1], // 55 -> 40
         ];
 
         foreach ($fieldsMonsters as $m) {
@@ -88,38 +88,57 @@ class GameContentSeeder extends Seeder
         ]);
 
         // 3. Starter Items
+        // Re-seeding with new Base Stats schema
         $starters = [
             [
                 'name' => 'Rusty Shortsword',
                 'type' => ItemType::WEAPON,
-                'base' => ['min_dmg' => 2, 'max_dmg' => 4, 'strength' => 2],
+                'damage' => 5,
+                'defense' => 0,
+                'base' => ['strength' => 2],
                 'lvl' => 1,
                 'class' => CharacterClass::WARRIOR->value
             ],
             [
-                'name' => 'Old Leather Boots',
+                'name' => 'Old Leather Tunic',
                 'type' => ItemType::ARMOR,
-                'base' => ['defense' => 1, 'dexterity' => 1], // Boots usually provide defense too
+                'damage' => 0,
+                'defense' => 6,
+                'base' => ['vitality' => 1],
                 'lvl' => 1,
-                'class' => null // Generic? Or Assassin? Prompt says "Starter Loot Set", implying drops.
+                'class' => null
             ],
             [
                 'name' => 'Cracked Buckler',
-                'type' => ItemType::ARMOR, // Offhand is armor? Or Weapon? Usually Armor.
-                'base' => ['defense' => 3, 'vitality' => 2],
+                'type' => ItemType::ARMOR,
+                'damage' => 1,
+                'defense' => 4,
+                'base' => ['vitality' => 2],
                 'lvl' => 1,
                 'class' => CharacterClass::WARRIOR->value
             ],
             [
-                'name' => 'Faded Robe',
+                'name' => 'Rusty Dagger',
+                'type' => ItemType::WEAPON,
+                'damage' => 3,
+                'defense' => 0,
+                // +10% Attack Speed?? We don't have 'attack_speed_pct' column or bonus type explicitly handled yet in pure stats?
+                // Let's add it to 'base_stats' JSON as a bonus for now.
+                'base' => ['dexterity' => 1], // Implicit speed via dex? Or explicit bonus.
+                // Assuming bonus calculation handles 'attack_speed'.
+                // Ideally ItemGenerator handles this. For template base stats, we just put it in JSON.
+                'lvl' => 1,
+                'class' => CharacterClass::ASSASSIN->value
+            ],
+            [
+                'name' => 'Faded Robe', // Keeping for Mage
                 'type' => ItemType::ARMOR,
-                'base' => ['defense' => 1, 'intelligence' => 2],
+                'damage' => 0,
+                'defense' => 3,
+                'base' => ['intelligence' => 2],
                 'lvl' => 1,
                 'class' => CharacterClass::MAGE->value
-            ],
-            // Keep existing starters if needed or update them
-            // The prompt asks for these specifically as "Drops". 
-            // ItemTemplate is the source for both starters and drops.
+            ]
         ];
 
         foreach ($starters as $s) {
@@ -127,6 +146,8 @@ class GameContentSeeder extends Seeder
                 ['name' => $s['name']],
                 [
                     'type' => $s['type'],
+                    'base_damage' => $s['damage'] ?? 0,
+                    'base_defense' => $s['defense'] ?? 0,
                     'base_stats' => $s['base'],
                     'min_level' => $s['lvl'],
                     'class_restriction' => $s['class']

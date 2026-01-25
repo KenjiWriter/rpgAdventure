@@ -8,9 +8,10 @@ export const usePlayerStore = defineStore('player', {
         inventory: [] as any[],
         activeBattle: null as any,
         showBattleModal: false,
-        activeMission: null as any, // Added global active mission
+        activeMission: null as any,
         logs: [] as any[],
         quests: [] as any[],
+        merchantExpiry: null as string | null,
     }),
 
     getters: {
@@ -66,6 +67,10 @@ export const usePlayerStore = defineStore('player', {
                 this.inventory = invRes.data.items;
                 this.logs = logsRes.data;
                 this.quests = questsRes.data;
+
+                if (charRes.data.merchant_expires_at) {
+                    this.merchantExpiry = charRes.data.merchant_expires_at;
+                }
             } catch (error) {
                 console.error('Failed to fetch player data:', error);
             }

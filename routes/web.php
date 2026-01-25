@@ -58,6 +58,11 @@ Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
     Route::get('/mission/active', [\App\Http\Controllers\MissionController::class, 'active']);
 
     Route::get('/maps', [\App\Http\Controllers\MapController::class, 'index']);
+
+    // Merchant
+    Route::get('/merchant', [\App\Http\Controllers\MerchantController::class, 'index'])->name('merchant.index');
+    Route::post('/merchant/refresh', [\App\Http\Controllers\MerchantController::class, 'refresh']);
+    Route::post('/merchant/buy', [\App\Http\Controllers\MerchantController::class, 'buy']);
 });
 
 require __DIR__ . '/settings.php';
