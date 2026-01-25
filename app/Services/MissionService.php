@@ -16,11 +16,13 @@ class MissionService
 {
     protected ItemGeneratorService $itemGenService;
     protected CharacterService $charService;
+    protected CombatEngine $combatEngine;
 
-    public function __construct(ItemGeneratorService $itemGenService, CharacterService $charService)
+    public function __construct(ItemGeneratorService $itemGenService, CharacterService $charService, CombatEngine $combatEngine)
     {
         $this->itemGenService = $itemGenService;
         $this->charService = $charService;
+        $this->combatEngine = $combatEngine;
     }
 
     public function startMission(Character $character, Map $map): Mission
@@ -74,9 +76,9 @@ class MissionService
                 throw new Exception("Mission still in progress. {$diff}s remaining.");
             }
 
-            // 2. Combat Simulation (Placeholder)
-            // 90% Win Chance
-            $won = rand(1, 100) <= 90;
+            // 2. Combat Simulation (Real Engine)
+            $combatResult = $this->combatEngine->simulate($mission->character, $mission->monster);
+            $won = $combatResult['is_victory'];
 
             $rewards = [
                 'type' => 'combat_result',
@@ -84,10 +86,13 @@ class MissionService
                 'gold' => 0,
                 'exp' => 0,
                 'items' => [],
-                'log' => $won ? "Victory against {$mission->monster->name}!" : "Defeated by {$mission->monster->name}..."
+                'combat_log' => $combatResult['log'],
+                'seed' => $combatResult['seed'],
+                'final_hp' => $combatResult['final_hp']
             ];
 
             if ($won) {
+                // Award Logic remains same
                 $monster = $mission->monster;
 
                 // Calculate Rewards
@@ -102,16 +107,8 @@ class MissionService
                 $mission->character->increment('gold', $gold);
                 $mission->character->increment('experience', $exp);
 
-                // Check Level Up logic would go here (omitted for brevity, handled in GameService/CharacterService normally)
-                // Assuming simple exp increase.
-
                 // Roll for Items
-                // Check drops_json. Assuming structure { "items": [template_id_1, template_id_2] } or implicit pool?
-                // The Seeder used: 'drops_json' => ['gold' => [1, 5], 'items' => []]
-                // Let's assume we fetch a random template fitting the map/monster level?
-                // Or we can just drop "Rusty Sword" occasionally for test.
-                // Let's imply a 30% chance to drop a random item from DB for now to demonstrate mechanism.
-
+                // 30% Chance
                 if (rand(1, 100) <= 30) {
                     // Find a template close to monster level
                     $template = \App\Models\ItemTemplate::inRandomOrder()->first();
@@ -125,21 +122,12 @@ class MissionService
             // 3. Finalize
             // Store rewards
             $mission->update([
-                'status' => $won ? MissionStatus::COMPLETED : MissionStatus::FAILED, // Or CLAIMED immediately if we just return rewards?
-                // Prompt says "Claim Reward" appears ONLY when status == completed.
-                // But the user refinement says: "When completeMission is triggered (on Claim)..."
-                // So this method IS the Claim Action.
-                // So we mark it CLAIMED (or history status) and return the data.
+                'status' => $won ? MissionStatus::COMPLETED : MissionStatus::FAILED,
                 'rewards_json' => $rewards,
             ]);
 
-            // To ensure it doesn't stay 'ACTIVE' or 'COMPLETED' pending claim forever if this IS the claim.
-            // Let's call it CLAIMED.
             $mission->status = MissionStatus::CLAIMED;
             $mission->save();
-
-            // Recalc stats if needed (exp/level change might affect stats)
-            // $this->charService->calculateTotalStats($mission->character);
 
             return $rewards;
         });

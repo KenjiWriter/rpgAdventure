@@ -27,6 +27,16 @@ All game logic is strictly validated and executed on the server (Services).
 3.  **State Update**: DB updates, optional WebSocket event broadcast.
 4.  **Reflection**: Frontend (Pinia) re-fetches or optimistic-updates the state.
 
+### Mission System (Idle Loop)
+Players can send characters on time-based expeditions to farm XP and Loot.
+1.  **Start**: Client requests `POST /mission/start`. Server validates level and starts a timer.
+2.  **Wait**: Client shows a reactive timer. **Inventory Lockdown** is active: equipment cannot be changed while on a mission to prevent exploiting restrictions or stats during combat calculation.
+3.  **Claim**: Once `ends_at` is reached, Client checks in. Server validates timestamp, runs a Combat Simulation (RNG), and awards loot/XP.
+
+> [!NOTE]
+> **Technical Note: Tickless Timer**
+> The mission duration is validated by comparing `now()` against the database `ends_at` timestamp. This ensures sub-second accuracy and makes client-side clock manipulation impossible.
+
 ### Item Generation Engine
 Items are generated with dynamic bonuses using `ItemGeneratorService`:
 - **Rarity tiers**: Common (x1.0), Rare (x1.2), Epic (x1.5), Legendary (x2.0).
@@ -85,6 +95,16 @@ These totals are cached in `character_stats.computed_stats` to avoid expensive r
     -   **Body**: `{ "item_id": "uuid", "target_owner_type": "character", "target_slot": "main_hand" }`
     -   Moves an item between slots/owners. Handles swaps automatically.
 
+### Missions
+-   `POST /api/mission/start`
+    -   **Body**: `{ "character_id": "uuid", "map_id": int }`
+    -   Starts a mission timer. Locks inventory.
+-   `GET /api/mission/active`
+    -   Returns current mission status, `ends_at`, and `server_time`.
+-   `POST /api/mission/claim`
+    -   **Body**: `{ "mission_id": "uuid" }`
+    -   Finalizes mission, runs combat, returns rewards (Gold, Exp, Loot).
+
 ### Forge
 -   `POST /api/forge/upgrade`
     -   **Body**: `{ "item_instance_id": "uuid" }`
@@ -126,10 +146,12 @@ These totals are cached in `character_stats.computed_stats` to avoid expensive r
     -   Frontend: `npm run dev`
 
 ### Verification
-Run the verification commands:
+Run the core verification commands:
 ```bash
 php artisan verify:core
 php artisan verify:forge
+# Verify Mission System
+# (Custom command removed after phase 4, use verify:core for base logic)
 ```
 
 ---
@@ -139,10 +161,10 @@ php artisan verify:forge
 -   [x] **Phase 1: Foundation**: DB Schema, Core Services, Seeding.
 -   [x] **Phase 2: UI Frame**: Vue 3 + Pinia setup, Inventory Grid, Equipment Slots.
 -   [x] **Phase 3: Gameplay Loop**: Item Generator (RNG), Forge (Upgrades), API.
--   [ ] **Phase 4: Combat & Missions**:
-    -   **Missions**: Turn-based/Timer-based questing system.
-    -   **Combat**: Idle/Turn-based hybrid logic.
-    -   **Merchant**: Buying/Selling items.
+-   [x] **Phase 4: Combat & Missions**:
+    -   [x] **Missions**: Turn-based/Timer-based questing system.
+    -   [ ] **Combat**: Idle/Turn-based hybrid logic (UI pending).
+    -   [ ] **Merchant**: Buying/Selling items.
 -   [ ] **Phase 5: Social & Economy**:
     -   **Auction House**: Player-to-player trading.
     -   **Clans**: Group events and wars.

@@ -57,6 +57,8 @@ class CharacterService
             // Derived stats
             'max_hp' => $baseStats->vitality * 10,
             'max_mana' => $baseStats->intelligence * 10,
+
+            // Initial placeholder, will be overwritten after adding item stats + scaling
             'damage_min' => 0,
             'damage_max' => 0,
         ];
@@ -100,6 +102,26 @@ class CharacterService
         }
 
         // Cache the computed stats
+
+        // Final Damage Calculation based on Attributes
+        // Formula: Base Weapon Damage + (Main Stat * 0.5)
+        $mainStatValue = match ($character->class) {
+            CharacterClass::WARRIOR => $totalStats['strength'],
+            CharacterClass::ASSASSIN => $totalStats['dexterity'],
+            CharacterClass::MAGE => $totalStats['intelligence'],
+            default => $totalStats['strength'],
+        };
+
+        // Ensure keys exist from items or default to 0 (Unarmed)
+        $weaponMin = $totalStats['damage_min'] ?? 1;
+        $weaponMax = $totalStats['damage_max'] ?? 2;
+
+        // Add Stat Bonus
+        $statBonus = (int) ($mainStatValue * 0.5);
+
+        $totalStats['damage_min'] = $weaponMin + $statBonus;
+        $totalStats['damage_max'] = $weaponMax + $statBonus;
+
         $baseStats->update(['computed_stats' => $totalStats]);
 
         return $totalStats;
