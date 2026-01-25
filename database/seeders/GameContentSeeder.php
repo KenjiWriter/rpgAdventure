@@ -18,9 +18,11 @@ class GameContentSeeder extends Seeder
     {
         // 1. Core Maps
         $field = Map::create(['name' => 'Whispering Fields', 'min_level' => 1]);
-        $peak = Map::create(['name' => 'Shadow Peak', 'min_level' => 6]);
+        $forest = Map::create(['name' => 'Dark Forest', 'min_level' => 5]);
+        $mine = Map::create(['name' => 'Abandoned Mine', 'min_level' => 10]);
 
         // 2. Monsters
+        // Field
         Monster::create([
             'map_id' => $field->id,
             'name' => 'Rabid Dog',
@@ -29,18 +31,37 @@ class GameContentSeeder extends Seeder
             'max_dmg' => 6,
             'speed' => 10,
             'element' => 'earth',
-            'drops_json' => ['gold' => [1, 5], 'items' => []]
+            'base_gold' => 5,
+            'base_exp' => 10,
+            'drops_json' => ['common_loot' => 0.5]
         ]);
 
+        // Forest
         Monster::create([
-            'map_id' => $peak->id,
+            'map_id' => $forest->id,
             'name' => 'Shadow Wolf',
             'hp' => 120,
             'min_dmg' => 8,
             'max_dmg' => 12,
             'speed' => 12,
             'element' => 'wind',
-            'drops_json' => ['gold' => [10, 20]]
+            'base_gold' => 15,
+            'base_exp' => 25,
+            'drops_json' => ['rare_loot' => 0.1]
+        ]);
+
+        // Mine
+        Monster::create([
+            'map_id' => $mine->id,
+            'name' => 'Cave Troll',
+            'hp' => 300,
+            'min_dmg' => 20,
+            'max_dmg' => 30,
+            'speed' => 5,
+            'element' => 'earth',
+            'base_gold' => 40,
+            'base_exp' => 60,
+            'drops_json' => ['gem' => 0.05]
         ]);
 
         // 3. Starter Items

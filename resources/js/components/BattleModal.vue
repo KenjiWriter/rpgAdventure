@@ -11,6 +11,7 @@ const currentTick = ref(0);
 const battleEvents = ref<any[]>([]); // Copy of log
 const processedEventIndex = ref(0);
 const floatingTexts = ref<any[]>([]);
+const logEnd = ref<HTMLElement | null>(null);
 
 // Participant State (Visual)
 const heroState = ref({
@@ -150,6 +151,11 @@ function applyEvent(event: any) {
     if (event.type === 'death') {
         // Animation?
     }
+
+    // Scroll Log
+    setTimeout(() => {
+        logEnd.value?.scrollIntoView({ behavior: 'smooth' });
+    }, 10);
 }
 
 function spawnFCT(event: any) {
@@ -216,49 +222,69 @@ function skip() {
             </div>
 
             <!-- Battlefield -->
-            <div class="relative flex-1 flex justify-between items-center px-12 bg-[url('/assets/bg-combat.png')] bg-cover bg-center rounded-lg border border-slate-800">
-                
-                <!-- Hero -->
-                <div class="relative flex flex-col items-center gap-2 transition-transform" :class="{ 'animate-shake': heroState.shaking }">
-                    <div class="w-24 h-24 rounded-full border-4 border-indigo-500 bg-slate-800 flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(99,102,241,0.5)]">
-                        <span class="text-4xl">🧘</span>
+            <div class="relative flex-1 flex gap-4 min-h-0">
+                <!-- Visual Field -->
+                <div class="flex-1 relative flex justify-between items-center px-12 bg-[url('/assets/bg-combat.png')] bg-cover bg-center rounded-lg border border-slate-800">
+                    
+                    <!-- Hero -->
+                    <div class="relative flex flex-col items-center gap-2 transition-transform" :class="{ 'animate-shake': heroState.shaking }">
+                        <div class="w-24 h-24 rounded-full border-4 border-indigo-500 bg-slate-800 flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(99,102,241,0.5)]">
+                            <span class="text-4xl">🧘</span>
+                        </div>
+                        <div class="w-32 h-4 bg-slate-900 rounded-full border border-slate-700 overflow-hidden relative">
+                            <div class="h-full bg-red-600 transition-all duration-300" :style="{ width: (heroState.hp / heroState.maxHp * 100) + '%' }"></div>
+                        </div>
+                        <span class="text-white font-bold">{{ heroState.hp }} / {{ heroState.maxHp }}</span>
                     </div>
-                    <div class="w-32 h-4 bg-slate-900 rounded-full border border-slate-700 overflow-hidden relative">
-                        <div class="h-full bg-red-600 transition-all duration-300" :style="{ width: (heroState.hp / heroState.maxHp * 100) + '%' }"></div>
+
+                    <!-- VS -->
+                    <div class="text-4xl font-black text-white/20 italic">VS</div>
+
+                    <!-- Enemy -->
+                    <div class="relative flex flex-col items-center gap-2 transition-transform" :class="{ 'animate-shake': enemyState.shaking }">
+                        <div class="w-32 h-4 bg-slate-900 rounded-full border border-slate-700 overflow-hidden relative">
+                             <!-- Hacky max HP logic: Set width relative to arbitrary max if 100 -->
+                            <div class="h-full bg-red-600 transition-all duration-300" :style="{ width: Math.min(100, Math.max(0, enemyState.hp)) + '%' }"></div>
+                        </div>
+                        <span class="text-white font-bold">{{ enemyState.hp }} HP</span>
+                         <div class="w-24 h-24 rounded-full border-4 border-red-500 bg-slate-800 flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(239,68,68,0.5)]">
+                            <span class="text-4xl">🐺</span>
+                        </div>
                     </div>
-                    <span class="text-white font-bold">{{ heroState.hp }} / {{ heroState.maxHp }}</span>
+
+                    <!-- Floating Texts -->
+                    <div class="absolute inset-0 pointer-events-none">
+                        <div v-for="fct in floatingTexts" :key="fct.id" 
+                            class="absolute transition-all duration-1000 ease-out flex flex-col items-center"
+                            :style="{ left: fct.x + '%', top: fct.y + '%' }"
+                        >
+                             <span class="fct-anim text-2xl font-black z-50 drop-shadow-md"
+                                :class="{
+                                    'text-yellow-400 text-4xl': fct.type === 'crit',
+                                    'text-red-500': fct.type === 'hit',
+                                    'text-gray-400 text-lg': fct.type === 'miss'
+                                }"
+                             >
+                                {{ fct.text }}
+                             </span>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- VS -->
-                <div class="text-4xl font-black text-white/20 italic">VS</div>
-
-                <!-- Enemy -->
-                <div class="relative flex flex-col items-center gap-2 transition-transform" :class="{ 'animate-shake': enemyState.shaking }">
-                    <div class="w-32 h-4 bg-slate-900 rounded-full border border-slate-700 overflow-hidden relative">
-                         <!-- Hacky max HP logic: Set width relative to arbitrary max if 100 -->
-                        <div class="h-full bg-red-600 transition-all duration-300" :style="{ width: Math.min(100, Math.max(0, enemyState.hp)) + '%' }"></div>
-                    </div>
-                    <span class="text-white font-bold">{{ enemyState.hp }} HP</span>
-                     <div class="w-24 h-24 rounded-full border-4 border-red-500 bg-slate-800 flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(239,68,68,0.5)]">
-                        <span class="text-4xl">🐺</span>
-                    </div>
-                </div>
-
-                <!-- Floating Texts -->
-                <div class="absolute inset-0 pointer-events-none">
-                    <div v-for="fct in floatingTexts" :key="fct.id" 
-                        class="absolute transition-all duration-1000 ease-out flex flex-col items-center"
-                        :style="{ left: fct.x + '%', top: fct.y + '%' }"
-                    >
-                         <span class="fct-anim text-2xl font-black z-50 drop-shadow-md"
-                            :class="{
-                                'text-yellow-400 text-4xl': fct.type === 'crit',
-                                'text-red-500': fct.type === 'hit',
-                                'text-gray-400 text-lg': fct.type === 'miss'
-                            }"
-                         >
-                            {{ fct.text }}
-                         </span>
+                <!-- Text Log Side Panel -->
+                <div class="w-64 bg-slate-950/90 border border-slate-800 rounded-lg p-4 flex flex-col overflow-hidden">
+                    <h3 class="text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider">Combat Log</h3>
+                    <div class="flex-1 overflow-y-auto space-y-1 text-xs font-mono scrollbar-hide" ref="logContainer">
+                        <div v-for="(event, i) in battleEvents.slice(0, processedEventIndex)" :key="i" class="text-slate-300 border-b border-slate-800/50 pb-1">
+                             <span :class="event.attacker_id === battleData?.participants.hero.id ? 'text-indigo-400' : 'text-red-400'">
+                                 {{ event.attacker_id === battleData?.participants.hero.id ? 'Hero' : 'Enemy' }}
+                             </span>
+                             <span v-if="event.type === 'hit'"> hits for <span class="text-white">{{ event.damage }}</span> dmg.</span>
+                             <span v-if="event.type === 'crit'"> crits for <span class="text-yellow-400">{{ event.damage }}</span>!</span>
+                             <span v-if="event.type === 'miss'"> misses.</span>
+                             <span v-if="event.type === 'death'" class="text-red-600 block pt-1">Target died.</span>
+                        </div>
+                        <div ref="logEnd"></div>
                     </div>
                 </div>
             </div>

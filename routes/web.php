@@ -4,45 +4,31 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 
-Route::get('/', function () {
-    if (!auth()->check()) {
-        return Inertia::render('Landing');
-    }
+// Secured Game Routes
+Route::middleware(['auth', 'verified', \App\Http\Middleware\EnsureCharacterSelected::class])->group(function () {
+    Route::get('/', function () {
+        // "Home" logic re-check
+        // If we are here, we have a character due to middleware.
+        $character = auth()->user()->characters()->first();
+        return Inertia::render('Game', [
+            'characterId' => $character->id
+        ]);
+    })->name('home');
 
-    $user = auth()->user();
-    $character = $user->characters()->first();
+    Route::get('/map', function () {
+        $character = auth()->user()->characters()->first();
+        return Inertia::render('WorldMap', ['characterId' => $character->id]);
+    })->name('map');
 
-    if (!$character) {
-        return redirect()->route('character.create');
-    }
+    Route::get('/quests', function () {
+        $character = auth()->user()->characters()->first();
+        return Inertia::render('QuestLog', ['characterId' => $character->id]);
+    })->name('quests');
 
-    return Inertia::render('Game', [
-        'characterId' => $character->id
-    ]);
-})->name('home');
-
-Route::get('/create-character', function () {
-    if (auth()->user()->characters()->exists()) {
+    Route::get('dashboard', function () {
         return redirect()->route('home');
-    }
-    return Inertia::render('CreateCharacter');
-})->middleware(['auth', 'verified'])->name('character.create');
-
-Route::get('/map', function () {
-    return Inertia::render('WorldMap');
-})->middleware(['auth', 'verified'])->name('map');
-
-Route::get('/quests', function () {
-    return Inertia::render('QuestLog');
-})->middleware(['auth', 'verified'])->name('quests');
-
-Route::post('/character', [\App\Http\Controllers\CharacterController::class, 'store'])
-    ->middleware(['auth', 'verified'])
-    ->name('character.store');
-
-Route::get('dashboard', function () {
-    return redirect()->route('home');
-})->middleware(['auth', 'verified'])->name('dashboard');
+    })->name('dashboard');
+});
 
 Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
     Route::get('/character/{id}/logs', [\App\Http\Controllers\CharacterController::class, 'logs']);
@@ -58,6 +44,8 @@ Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
     Route::post('/mission/start', [\App\Http\Controllers\MissionController::class, 'start']);
     Route::post('/mission/claim', [\App\Http\Controllers\MissionController::class, 'claim']);
     Route::get('/mission/active', [\App\Http\Controllers\MissionController::class, 'active']);
+
+    Route::get('/maps', [\App\Http\Controllers\MapController::class, 'index']);
 });
 
 require __DIR__ . '/settings.php';

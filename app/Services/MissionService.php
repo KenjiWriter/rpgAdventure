@@ -29,7 +29,7 @@ class MissionService
     {
         // 1. Validation
         if ($character->level < $map->min_level) {
-            throw new Exception("Character level too low for this map.");
+            throw new Exception("Character level {$character->level} is too low for this map (Req: {$map->min_level}).");
         }
 
         if (Mission::where('character_id', $character->id)->where('status', MissionStatus::ACTIVE)->exists()) {

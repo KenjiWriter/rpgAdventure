@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class CharacterLog extends Model
 {
+    public $timestamps = false;
+
     protected $fillable = [
         'character_id',
         'type',

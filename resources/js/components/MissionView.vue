@@ -10,26 +10,59 @@ const loading = ref(false);
 const timeLeft = ref(0);
 let timerInterval: any = null;
 
-// Maps (Placeholder - In real app fetch from API)
-const maps = [
-    { id: 1, name: 'Whispering Fields', minLevel: 1, difficulty: 'Easy' },
-    { id: 2, name: 'Dark Forest', minLevel: 5, difficulty: 'Medium' }
-];
+// Maps
+const maps = ref<any[]>([]);
+const loadingMaps = ref(false);
+
+const getDifficulty = (lvl: number) => {
+    if (lvl <= 2) return 'Easy';
+    if (lvl <= 8) return 'Medium';
+    return 'Hard';
+};
 
 const hasActiveMission = computed(() => !!activeMission.value);
 const canClaim = computed(() => timeLeft.value <= 0 && hasActiveMission.value);
 
-onMounted(() => {
-    checkActiveMission();
+onMounted(async () => {
+    if (!store.character && store.character?.id) {
+         // If character ID known but not loaded? Store naming is characterId usually passed or user known.
+         // Actually, how do we know the ID?
+         // In web.php, we pass user to view? No, inertia.
+         // Maybe we rely on the backend to tell us the character?
+         // Or getting it from props?
+         // `Game.vue` gets `characterId` prop. `WorldMap.vue` does NOT.
+         // We need to pass character info to `WorldMap` or fetch it via a "me" endpoint.
+         // `GameLayout` uses `usePage`?
+         // Let's assume for MVP we fetch based on what we have or fix the route to pass the character.
+         // The `WorldMap.vue` is rendered in `web.php` for `/map` without props.
+         // Let's change `web.php` to pass `character` or have `WorldMap` fetch "my character".
+         // `QuestController` gets `auth()->user()->characters()->firstOrFail()`.
+         // We can add `store.fetchActiveCharacter()`?
+         // Or just update `web.php` to pass the character ID to the Map view.
+    }
+    await Promise.all([checkActiveMission(), fetchMaps()]);
 });
 
 onUnmounted(() => {
     if (timerInterval) clearInterval(timerInterval);
 });
 
-async function checkActiveMission() {
+async function fetchMaps() {
+    loadingMaps.value = true;
     try {
-        const res = await axios.get(`/api/mission/active?character_id=${store.character?.id}`);
+        const res = await axios.get('/api/maps');
+        maps.value = res.data;
+    } catch (e) {
+        console.error("Failed to fetch maps", e);
+    } finally {
+        loadingMaps.value = false;
+    }
+}
+
+async function checkActiveMission() {
+    if (!store.character?.id) return;
+    try {
+        const res = await axios.get(`/api/mission/active?character_id=${store.character.id}`);
         if (res.data.mission) {
             activeMission.value = res.data.mission;
             startTimer(res.data.mission.ends_at, res.data.server_time);
@@ -128,15 +161,27 @@ function formatTime(sec: number) {
 
         <!-- Map Selection -->
         <div v-else class="grid gap-3">
+            <div v-if="loadingMaps" class="text-center text-slate-500 py-4">Loading maps...</div>
+            <div v-else-if="maps.length === 0" class="text-center text-red-400 py-4">No maps available. Service unavailable.</div>
+            
             <div v-for="map in maps" :key="map.id" class="flex justify-between items-center p-3 bg-slate-800/50 hover:bg-slate-700/50 rounded border border-slate-700 transition-colors">
                 <div>
                     <div class="font-semibold text-slate-200">{{ map.name }}</div>
-                    <div class="text-xs text-slate-500">Min Lvl: {{ map.minLevel }} • {{ map.difficulty }}</div>
+                    <div class="text-xs text-slate-500">Min Lvl: {{ map.min_level }} • {{ getDifficulty(map.min_level) }}</div>
                 </div>
                 
-                <button @click="startMission(map.id)" :disabled="loading"
-                    class="px-3 py-1 bg-slate-700 hover:bg-indigo-600 text-slate-300 hover:text-white rounded text-sm transition-all">
-                    Start
+                <button @click="startMission(map.id)" 
+                    :disabled="loading || (store.character?.level < map.min_level)"
+                    class="px-3 py-1 rounded text-sm transition-all flex items-center gap-2"
+                    :class="store.character?.level >= map.min_level 
+                        ? 'bg-slate-700 hover:bg-indigo-600 text-slate-300 hover:text-white' 
+                        : 'bg-slate-800 text-slate-600 cursor-not-allowed border border-slate-700'"
+                >
+                    <span v-if="loading">...</span>
+                    <span v-else>Start</span>
+                    <span v-if="store.character?.level < map.min_level" class="text-[10px] uppercase font-bold text-red-500 ml-1">
+                        Locked
+                    </span>
                 </button>
             </div>
         </div>

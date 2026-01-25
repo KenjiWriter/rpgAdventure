@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
+import { usePage } from '@inertiajs/vue3';
 
 export const usePlayerStore = defineStore('player', {
     state: () => ({
@@ -31,6 +32,20 @@ export const usePlayerStore = defineStore('player', {
     },
 
     actions: {
+        async initialize() {
+            // Hydrate from Inertia Props if available
+            // @ts-ignore
+            const pageProps = usePage().props;
+            if (pageProps.auth?.character) {
+                this.character = pageProps.auth.character;
+                // We might still want to fetch fresh data (inventory etc)
+                // But we have the ID now.
+                if (this.character.id) {
+                    this.fetchPlayerData(this.character.id);
+                }
+            }
+        },
+
         async fetchPlayerData(characterId: string) {
             if (!characterId) {
                 console.warn('fetchPlayerData called with no ID');

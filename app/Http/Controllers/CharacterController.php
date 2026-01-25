@@ -73,4 +73,18 @@ class CharacterController extends Controller
             // I'll keep it under stats for structure.
         ]);
     }
+    public function logs(string $id): JsonResponse
+    {
+        $character = Character::findOrFail($id);
+
+        // Authorization check if needed
+        if ($character->user_id !== auth()->id()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        // Return latest 50 logs
+        $logs = $character->logs()->latest()->take(50)->get();
+
+        return response()->json($logs);
+    }
 }

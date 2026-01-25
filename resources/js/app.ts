@@ -8,6 +8,7 @@ import '../css/app.css';
 import { initializeTheme } from './composables/useAppearance';
 
 import { ZiggyVue } from 'ziggy-js';
+import { usePlayerStore } from './stores/usePlayerStore';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -26,6 +27,10 @@ createInertiaApp({
             .use(pinia)
             .use(ZiggyVue)
             .mount(el);
+
+        // Hydrate Store
+        const store = usePlayerStore(pinia);
+        store.initialize();
     },
     progress: {
         color: '#4B5563',
