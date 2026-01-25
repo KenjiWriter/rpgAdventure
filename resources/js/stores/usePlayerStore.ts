@@ -30,6 +30,50 @@ export const usePlayerStore = defineStore('player', {
             if (!state.character) return 0;
             const nextLevelExp = state.character.level * 1000;
             return Math.min(100, (state.character.experience / nextLevelExp) * 100);
+        },
+        // Derived Stats
+        derivedStats: (state) => {
+            const stats = state.character?.stats?.computed_stats || {};
+            // find main hand from equipment getter logic? 
+            // Better logic: reuse equipment getter if possible or filter again.
+            // Pinia getters can access other getters via 'this'.
+            // Access via 'this.equipment' needs non-arrow function or passing state if defined differently.
+            // Let's filter directly for safety.
+            const items = state.character?.items || [];
+            const mainHand = items.find((i: any) => i.slot_id === 'main_hand');
+
+            const strBonus = (stats.strength || 0) * 2;
+            const minDmg = (mainHand?.template?.base_damage_min || 0) + strBonus;
+            const maxDmg = (mainHand?.template?.base_damage_max || 0) + strBonus;
+
+            const defense = items.filter((i: any) => ['head', 'chest', 'legs', 'boots', 'gloves', 'off_hand'].includes(i.slot_id)).reduce((sum: number, item: any) => {
+                return sum + (item.template?.base_defense || 0);
+            }, 0);
+
+            const dodgeChance = Math.floor((stats.dexterity || 0) * 0.5);
+
+            return {
+                attack_min: minDmg,
+                attack_max: maxDmg,
+                defense,
+                dodge: dodgeChance
+            };
+        },
+        activeBonuses: (state) => {
+            const bonuses: Record<string, number> = {};
+            const items = state.character?.items || [];
+            const equipmentSlots = ['head', 'chest', 'legs', 'boots', 'gloves', 'main_hand', 'off_hand', 'amulet', 'ring'];
+
+            items.filter((i: any) => equipmentSlots.includes(i.slot_id)).forEach((item: any) => {
+                if (item.bonuses) {
+                    item.bonuses.forEach((b: any) => {
+                        if (!bonuses[b.type]) bonuses[b.type] = 0;
+                        bonuses[b.type] += b.value;
+                    });
+                }
+            });
+
+            return Object.entries(bonuses).map(([type, value]) => ({ type, value }));
         }
     },
 
@@ -120,8 +164,13 @@ export const usePlayerStore = defineStore('player', {
                     target_slot: targetSlot
                 });
                 await this.fetchPlayerData(this.character.id);
-            } catch (error) {
-                console.error('Failed to move item:', error);
+                // Success Toast
+                const ui = (await import('./useUIStore')).useUIStore();
+                ui.addToast('Item Equipped!', 'success');
+            } catch (anyError: any) {
+                const ui = (await import('./useUIStore')).useUIStore();
+                ui.addToast(anyError.response?.data?.message || 'Failed to move item', 'error');
+                console.error('Failed to move item:', anyError);
             }
         },
 

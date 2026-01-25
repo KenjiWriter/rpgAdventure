@@ -98,17 +98,28 @@ class CharacterService
                 // Base Damage / Defense
                 if ($item->template->base_damage_min) {
                     $dmgMin = (int) ($item->template->base_damage_min * $multiplier);
-                    $dmgMax = (int) (($item->template->base_damage_max ?: $item->template->base_damage_min) * $multiplier); // Fallback to min if max missing
+                    $dmgMax = (int) (($item->template->base_damage_max ?: $item->template->base_damage_min) * $multiplier);
+
+                    // Initialize if not set
+                    if (!isset($totalStats['damage_min']))
+                        $totalStats['damage_min'] = 0;
+                    if (!isset($totalStats['damage_max']))
+                        $totalStats['damage_max'] = 0;
 
                     $totalStats['damage_min'] += $dmgMin;
                     $totalStats['damage_max'] += $dmgMax;
                 }
+
                 if ($item->template->base_defense) {
+                    if (!isset($totalStats['defense']))
+                        $totalStats['defense'] = 0;
                     $totalStats['defense'] += (int) ($item->template->base_defense * $multiplier);
                 }
 
                 if ($item->template->base_stats) {
                     foreach ($item->template->base_stats as $key => $value) {
+                        // Fix key mapping for frontend if needed, but backend service should use standard keys
+                        // For now assume base_stats keys are valid (e.g. 'dodge', 'speed')
                         $upgradedValue = (int) ($value * $multiplier);
                         if (isset($totalStats[$key])) {
                             $totalStats[$key] += $upgradedValue;

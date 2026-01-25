@@ -183,19 +183,53 @@ const getItemInBackpackSlot = (slotIndex: number) => {
                 </div>
             </div>
             
-             <!-- Stats Summary (Quick View) -->
+             <!-- Detailed Stats Panel -->
              <div class="mt-8 p-4 bg-slate-950/50 rounded-lg border border-slate-800 font-mono text-xs">
-                 <div class="flex justify-between mb-1">
-                     <span class="text-slate-400">Strength</span>
-                     <span class="text-green-400">{{ store.computedStats.strength }}</span>
+                 <h3 class="text-zinc-400 font-bold mb-3 uppercase tracking-wider text-[10px]">Attributes</h3>
+                 <div class="grid grid-cols-2 gap-y-2 mb-4">
+                     <div class="flex justify-between pr-4 border-r border-slate-800">
+                         <span class="text-slate-500">Strength</span>
+                         <span class="text-amber-500">{{ store.computedStats.strength }}</span>
+                     </div>
+                     <div class="flex justify-between pl-4">
+                         <span class="text-slate-500">Dexterity</span>
+                         <span class="text-emerald-500">{{ store.computedStats.dexterity }}</span>
+                     </div>
+                     <div class="flex justify-between pr-4 border-r border-slate-800">
+                         <span class="text-slate-500">Intellect</span>
+                         <span class="text-blue-500">{{ store.computedStats.intelligence }}</span>
+                     </div>
+                     <div class="flex justify-between pl-4">
+                         <span class="text-slate-500">Vitality</span>
+                         <span class="text-red-500">{{ store.computedStats.vitality }}</span>
+                     </div>
                  </div>
-                 <div class="flex justify-between mb-1">
-                     <span class="text-slate-400">Dexterity</span>
-                     <span class="text-green-400">{{ store.computedStats.dexterity }}</span>
+
+                 <h3 class="text-zinc-400 font-bold mb-3 uppercase tracking-wider text-[10px] pt-2 border-t border-slate-800">Combat Stats</h3>
+                 <div class="space-y-2">
+                     <div class="flex justify-between items-center">
+                         <span class="text-slate-400">⚔️ Attack Power</span>
+                         <span class="text-amber-400 font-bold">{{ store.derivedStats.attack_min }} - {{ store.derivedStats.attack_max }}</span>
+                     </div>
+                     <div class="flex justify-between items-center">
+                         <span class="text-slate-400">🛡️ Defense</span>
+                         <span class="text-slate-200 font-bold">{{ store.derivedStats.defense }}</span>
+                     </div>
+                     <div class="flex justify-between items-center">
+                         <span class="text-slate-400">💨 Dodge Chance</span>
+                         <span class="text-emerald-400 font-bold">{{ store.derivedStats.dodge }}%</span>
+                     </div>
                  </div>
-                 <div class="flex justify-between">
-                     <span class="text-slate-400">Intelligence</span>
-                     <span class="text-green-400">{{ store.computedStats.intelligence }}</span>
+
+                 <!-- Active Bonuses -->
+                 <div v-if="store.activeBonuses.length > 0" class="mt-4 pt-2 border-t border-slate-800">
+                    <h3 class="text-zinc-400 font-bold mb-2 uppercase tracking-wider text-[10px]">Active Enchantments</h3>
+                    <div class="space-y-1">
+                        <div v-for="bonus in store.activeBonuses" :key="bonus.type" class="flex justify-between text-[10px]">
+                             <span class="text-slate-500 capitalize">{{ bonus.type.replace('_', ' ') }}</span>
+                             <span class="text-green-400">+{{ bonus.value }}</span>
+                        </div>
+                    </div>
                  </div>
              </div>
         </div>

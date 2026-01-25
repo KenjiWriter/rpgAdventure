@@ -4,6 +4,7 @@ import { usePlayerStore } from '../stores/usePlayerStore';
 import { Link, router } from '@inertiajs/vue3';
 import { Shield, Map as MapIcon, User, Package, ShoppingBag, Scroll, Loader2, AlertCircle } from 'lucide-vue-next';
 import BattleModal from '../components/BattleModal.vue';
+import ToastNotification from '../Components/ToastNotification.vue';
 
 const store = usePlayerStore();
 
@@ -227,5 +228,6 @@ function stopTimer() {
         </div>
         
         <BattleModal />
+        <ToastNotification />
     </div>
 </template>
