@@ -55,7 +55,8 @@ class CharacterService
             'resistance_water' => $baseStats->resistance_water,
             'resistance_earth' => $baseStats->resistance_earth,
             // Derived stats
-            'hp' => $baseStats->vitality * 10, // Example formula
+            'max_hp' => $baseStats->vitality * 10,
+            'max_mana' => $baseStats->intelligence * 10,
             'damage_min' => 0,
             'damage_max' => 0,
         ];
