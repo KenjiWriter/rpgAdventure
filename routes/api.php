@@ -11,6 +11,7 @@ use App\Http\Controllers\CharacterController;
 use App\Http\Controllers\InventoryController;
 
 Route::get('/character/{id}', [CharacterController::class, 'show']);
+Route::post('/character', [CharacterController::class, 'store']);
 Route::get('/inventory', [InventoryController::class, 'index']);
 Route::post('/inventory/move', [InventoryController::class, 'move']);
 

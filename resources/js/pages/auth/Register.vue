@@ -1,108 +1,59 @@
 <script setup lang="ts">
-import InputError from '@/components/InputError.vue';
-import TextLink from '@/components/TextLink.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
-import AuthBase from '@/layouts/AuthLayout.vue';
-import { login } from '@/routes';
-import { store } from '@/routes/register';
-import { Form, Head } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+
+const form = useForm({
+    name: '',
+    email: '',
+    password: '',
+    password_confirmation: '',
+});
+
+const submit = () => {
+    form.post(route('register'), {
+        onFinish: () => form.reset('password', 'password_confirmation'),
+    });
+};
 </script>
 
 <template>
-    <AuthBase
-        title="Create an account"
-        description="Enter your details below to create your account"
-    >
-        <Head title="Register" />
+    <Head title="Register" />
 
-        <Form
-            v-bind="store.form()"
-            :reset-on-success="['password', 'password_confirmation']"
-            v-slot="{ errors, processing }"
-            class="flex flex-col gap-6"
-        >
-            <div class="grid gap-6">
-                <div class="grid gap-2">
-                    <Label for="name">Name</Label>
-                    <Input
-                        id="name"
-                        type="text"
-                        required
-                        autofocus
-                        :tabindex="1"
-                        autocomplete="name"
-                        name="name"
-                        placeholder="Full name"
-                    />
-                    <InputError :message="errors.name" />
+    <div class="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+        <div class="w-full max-w-md bg-slate-900/80 p-8 rounded-xl border border-slate-800">
+            <h2 class="text-2xl font-bold text-white mb-6 text-center">Create Account</h2>
+
+            <form @submit.prevent="submit" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300">Name</label>
+                    <input v-model="form.name" type="text" required class="mt-1 block w-full bg-slate-800 border-slate-700 rounded text-white" />
+                    <div v-if="form.errors.name" class="text-red-500 text-sm mt-1">{{ form.errors.name }}</div>
                 </div>
 
-                <div class="grid gap-2">
-                    <Label for="email">Email address</Label>
-                    <Input
-                        id="email"
-                        type="email"
-                        required
-                        :tabindex="2"
-                        autocomplete="email"
-                        name="email"
-                        placeholder="email@example.com"
-                    />
-                    <InputError :message="errors.email" />
+                <div>
+                    <label class="block text-sm font-medium text-slate-300">Email</label>
+                    <input v-model="form.email" type="email" required class="mt-1 block w-full bg-slate-800 border-slate-700 rounded text-white" />
+                    <div v-if="form.errors.email" class="text-red-500 text-sm mt-1">{{ form.errors.email }}</div>
                 </div>
 
-                <div class="grid gap-2">
-                    <Label for="password">Password</Label>
-                    <Input
-                        id="password"
-                        type="password"
-                        required
-                        :tabindex="3"
-                        autocomplete="new-password"
-                        name="password"
-                        placeholder="Password"
-                    />
-                    <InputError :message="errors.password" />
+                <div>
+                    <label class="block text-sm font-medium text-slate-300">Password</label>
+                    <input v-model="form.password" type="password" required class="mt-1 block w-full bg-slate-800 border-slate-700 rounded text-white" />
+                    <div v-if="form.errors.password" class="text-red-500 text-sm mt-1">{{ form.errors.password }}</div>
                 </div>
 
-                <div class="grid gap-2">
-                    <Label for="password_confirmation">Confirm password</Label>
-                    <Input
-                        id="password_confirmation"
-                        type="password"
-                        required
-                        :tabindex="4"
-                        autocomplete="new-password"
-                        name="password_confirmation"
-                        placeholder="Confirm password"
-                    />
-                    <InputError :message="errors.password_confirmation" />
+                <div>
+                    <label class="block text-sm font-medium text-slate-300">Confirm Password</label>
+                    <input v-model="form.password_confirmation" type="password" required class="mt-1 block w-full bg-slate-800 border-slate-700 rounded text-white" />
                 </div>
 
-                <Button
-                    type="submit"
-                    class="mt-2 w-full"
-                    tabindex="5"
-                    :disabled="processing"
-                    data-test="register-user-button"
-                >
-                    <Spinner v-if="processing" />
-                    Create account
-                </Button>
-            </div>
+                <button :disabled="form.processing" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded">
+                    Register
+                </button>
 
-            <div class="text-center text-sm text-muted-foreground">
-                Already have an account?
-                <TextLink
-                    :href="login()"
-                    class="underline underline-offset-4"
-                    :tabindex="6"
-                    >Log in</TextLink
-                >
-            </div>
-        </Form>
-    </AuthBase>
+                <div class="text-center text-sm text-slate-400">
+                    Already registered? <Link :href="route('login')" class="text-indigo-400 hover:text-indigo-300">Log in</Link>
+                </div>
+            </form>
+        </div>
+    </div>
 </template>

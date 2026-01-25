@@ -2,13 +2,45 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\CharacterClass;
 use App\Models\Character;
+use App\Services\CharacterService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class CharacterController extends Controller
 {
-    public function show(string $id): JsonResponse
+    protected CharacterService $characterService;
+
+    public function __construct(CharacterService $characterService)
+    {
+        $this->characterService = $characterService;
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|min:3|max:20|unique:characters,name',
+            'class' => ['required', 'string', \Illuminate\Validation\Rule::enum(CharacterClass::class)],
+        ]);
+
+        // Limit 1 character per user?
+        if (auth()->user()->characters()->exists()) {
+            return response()->json(['message' => 'You already have a character.'], 400);
+        }
+
+        $character = $this->characterService->createCharacter(
+            auth()->user(),
+            $validated['name'],
+            CharacterClass::from($validated['class'])
+        );
+
+        return response()->json([
+            'message' => 'Character created successfully!',
+            'character_id' => $character->id
+        ], 201);
+    }
+
     {
         $character = Character::with([
             'stats',

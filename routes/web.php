@@ -5,16 +5,15 @@ use Inertia\Inertia;
 use Laravel\Fortify\Features;
 
 Route::get('/', function () {
-    // For prototype, we just get the first character of the first user or a demo ID.
-    $user = \App\Models\User::first();
-    if (!$user) {
-        return 'Please run migration and seed first.';
+    if (!auth()->check()) {
+        return Inertia::render('Landing');
     }
+
+    $user = auth()->user();
     $character = $user->characters()->first();
 
-    // Create one if missing (should be there from seeder)
     if (!$character) {
-        return 'No character found for user.';
+        return redirect()->route('character.create');
     }
 
     return Inertia::render('Game', [
@@ -22,8 +21,15 @@ Route::get('/', function () {
     ]);
 })->name('home');
 
+Route::get('/create-character', function () {
+    if (auth()->user()->characters()->exists()) {
+        return redirect()->route('home');
+    }
+    return Inertia::render('CreateCharacter');
+})->middleware(['auth', 'verified'])->name('character.create');
+
 Route::get('dashboard', function () {
-    return Inertia::render('Dashboard');
+    return redirect()->route('home');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 require __DIR__ . '/settings.php';

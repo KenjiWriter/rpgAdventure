@@ -8,8 +8,13 @@ use App\Models\CharacterStats;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
-class CharacterService
-{
+    protected ItemGeneratorService $itemGenService;
+
+    public function __construct(ItemGeneratorService $itemGenService)
+    {
+        $this->itemGenService = $itemGenService;
+    }
+
     public function createCharacter(User $user, string $name, CharacterClass $class): Character
     {
         return DB::transaction(function () use ($user, $name, $class) {
@@ -23,9 +28,8 @@ class CharacterService
                 'stat_points' => 0,
             ]);
 
-            // Default stats based on class could be handled here
-            // For now, using default 5 for all as per migration default, but we can customize later.
-            $stats = CharacterStats::create([
+            // Default stats 
+            CharacterStats::create([
                 'character_id' => $character->id,
                 'strength' => 5,
                 'dexterity' => 5,
@@ -33,7 +37,20 @@ class CharacterService
                 'vitality' => 5,
             ]);
 
-            // Initial calculation of total stats
+            // Starter Items
+            $starterTemplates = \App\Models\ItemTemplate::where('min_level', 1)
+                ->where(function($q) use ($class) {
+                    $q->where('class_restriction', $class)
+                      ->orWhereNull('class_restriction');
+                })
+                ->get();
+
+            foreach ($starterTemplates as $template) {
+                // Generate Basic (Common) instance
+                $this->itemGenService->generateInstance($template, $character, \App\Enums\ItemRarity::COMMON);
+            }
+
+            // Initial calculation of total stats (includes items)
             $this->calculateTotalStats($character);
 
             return $character;
