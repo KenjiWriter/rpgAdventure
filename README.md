@@ -27,6 +27,12 @@ All game logic is strictly validated and executed on the server (Services).
 3.  **State Update**: DB updates, optional WebSocket event broadcast.
 4.  **Reflection**: Frontend (Pinia) re-fetches or optimistic-updates the state.
 
+### Combat Engine (Action Timeline)
+The engine provides a deterministic, tick-based combat simulation (`CombatEngine.php`).
+- **Tick-Below**: Attack Interval is calculated dynamically: `2000ms / (1 + Dex * 0.01)`. High Dexterity characters attack significantly faster.
+- **Determinism**: Every fight accepts a `seed` argument. Replaying the simulation with the same seed results in the exact same log, enabling low-bandwidth client replay.
+- **Universal Adapter**: `CombatEntity` wrapper allows fighting between any entities (Char vs Monster, Char vs Char). This architecture supports 1v1, 1vN, and sequential NvN (Gauntlet Mode) for future Clan Wars.
+
 ### Mission System (Idle Loop)
 Players can send characters on time-based expeditions to farm XP and Loot.
 1.  **Start**: Client requests `POST /mission/start`. Server validates level and starts a timer.
@@ -73,12 +79,13 @@ Base stats (Strength, Vitality, etc.) are stored in `character_stats`. "Total" o
 
 These totals are cached in `character_stats.computed_stats` to avoid expensive recalculation on every read.
 
-#### Formulas
-| Stat | Formula | Effect |
-| :--- | :--- | :--- |
-| **Max HP** | `Vitality * 10` | Total health points. |
-| **Max Mana** | `Intelligence * 10` | Total magic points. |
-| **Attack Power** | *Dynamic* | Based on STR/DEX dependent on Class. |
+### Combat Formulas
+| Logic | Formula |
+| :--- | :--- |
+| **Attack Interval** | `2000ms / (1 + Dex * 0.01)` |
+| **Hit Chance** | `Accuracy / (Accuracy + Evasion)` (conceptually) or `85 + (Acc - Eva)` (implemented) |
+| **Damage** | `max(1, (Atk - Def)) * ElementalModifiers` |
+| **Crit Chance** | `5% + (Accuracy * 0.1)%` |
 
 ---
 
@@ -149,9 +156,8 @@ These totals are cached in `character_stats.computed_stats` to avoid expensive r
 Run the core verification commands:
 ```bash
 php artisan verify:core
+php artisan verify:combat
 php artisan verify:forge
-# Verify Mission System
-# (Custom command removed after phase 4, use verify:core for base logic)
 ```
 
 ---
@@ -163,7 +169,8 @@ php artisan verify:forge
 -   [x] **Phase 3: Gameplay Loop**: Item Generator (RNG), Forge (Upgrades), API.
 -   [x] **Phase 4: Combat & Missions**:
     -   [x] **Missions**: Turn-based/Timer-based questing system.
-    -   [ ] **Combat**: Idle/Turn-based hybrid logic (UI pending).
+    -   [x] **Combat**: Time-based Deterministic Engine (Logic).
+    -   [ ] **Combat UI**: Visual Replay Modal.
     -   [ ] **Merchant**: Buying/Selling items.
 -   [ ] **Phase 5: Social & Economy**:
     -   **Auction House**: Player-to-player trading.

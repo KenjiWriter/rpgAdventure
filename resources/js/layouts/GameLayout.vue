@@ -1,7 +1,7 @@
-<script setup lang="ts">
 import { computed } from 'vue';
 import { usePlayerStore } from '../stores/usePlayerStore';
 import { Shield, Map as MapIcon, User, Package, ShoppingBag } from 'lucide-vue-next';
+import BattleModal from '../components/BattleModal.vue';
 
 // Assuming store is initialized by a parent or we initialize here if ID is known?
 // Usually layout is wrapped around pages.
@@ -120,5 +120,7 @@ const navItems = [
                  </div>
             </main>
         </div>
+        
+        <BattleModal />
     </div>
 </template>

@@ -5,7 +5,8 @@ export const usePlayerStore = defineStore('player', {
     state: () => ({
         character: null as any,
         inventory: [] as any[],
-        // computedStats are inside character.stats.computed_stats
+        activeBattle: null as any,
+        showBattleModal: false,
     }),
 
     getters: {
@@ -82,6 +83,48 @@ export const usePlayerStore = defineStore('player', {
                 console.error('Failed to move item:', error);
                 // Revert optimistic changes if we did any
             }
+        },
+
+        async claimMission(missionId: string) {
+            try {
+                const response = await axios.post('/api/mission/claim', { mission_id: missionId });
+                const rewards = response.data.rewards;
+
+                if (rewards.type === 'combat_result' && rewards.combat_log) {
+                    this.activeBattle = {
+                        log: rewards.combat_log,
+                        seed: rewards.seed,
+                        winnerId: rewards.won ? this.character.id : null, // Assuming if won, Hero won
+                        participants: {
+                            hero: this.character,
+                            // We don't have full monster data here unless we pass it or response has it.
+                            // The claim response `Mission::with(...)` might return monster logic, but `rewards` is just JSON.
+                            // We should probably ensure the response includes minimal monster info for UI.
+                            // But usually Mission view has Monster info.
+                            // Let's assume we can pass monster details from the component that calls this.
+                        },
+                        rewards: {
+                            gold: rewards.gold,
+                            exp: rewards.exp,
+                            items: rewards.items
+                        }
+                    };
+                    this.showBattleModal = true;
+                }
+
+                // Refresh player data (gold/exp/items)
+                await this.fetchPlayerData(this.character.id);
+
+                return response.data;
+            } catch (error) {
+                console.error('Failed to claim mission:', error);
+                throw error;
+            }
+        },
+
+        closeBattleModal() {
+            this.showBattleModal = false;
+            this.activeBattle = null; // Memory Cleanup
         }
     }
 });
