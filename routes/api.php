@@ -16,3 +16,8 @@ Route::post('/inventory/move', [InventoryController::class, 'move']);
 
 use App\Http\Controllers\ForgeController;
 Route::post('/forge/upgrade', [ForgeController::class, 'upgrade']);
+
+use App\Http\Controllers\MissionController;
+Route::post('/mission/start', [MissionController::class, 'start']);
+Route::post('/mission/claim', [MissionController::class, 'claim']);
+Route::get('/mission/active', [MissionController::class, 'active']);

@@ -16,6 +16,8 @@ class Monster extends Model
         'element',
         'drops_json',
         'map_id',
+        'base_exp',
+        'base_gold',
     ];
 
     protected $casts = [

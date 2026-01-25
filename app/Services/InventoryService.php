@@ -4,14 +4,23 @@ namespace App\Services;
 
 use App\Enums\CharacterClass;
 use App\Enums\ItemSlot;
+use App\Enums\MissionStatus;
 use App\Models\Character;
 use App\Models\ItemInstance;
+use App\Models\Mission;
 use App\Models\User;
 use Exception;
 use Illuminate\Support\Facades\DB;
 
 class InventoryService
 {
+    private function isOnMission(Character $character): bool
+    {
+        return Mission::where('character_id', $character->id)
+            ->where('status', MissionStatus::ACTIVE)
+            ->exists();
+    }
+
     /**
      * Move an item between slots, characters, or warehouse.
      * 
