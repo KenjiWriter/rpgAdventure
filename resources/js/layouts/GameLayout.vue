@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { usePlayerStore } from '../stores/usePlayerStore';
-import { Shield, Map as MapIcon, User, Package, ShoppingBag } from 'lucide-vue-next';
+import { Link } from '@inertiajs/vue3';
+import { Shield, Map as MapIcon, User, Package, ShoppingBag, Scroll } from 'lucide-vue-next';
 import BattleModal from '../components/BattleModal.vue';
 
 // Assuming store is initialized by a parent or we initialize here if ID is known?
@@ -19,10 +20,9 @@ const maxMana = computed(() => store.maxMana);
 
 // Navigation
 const navItems = [
-    { name: 'Character', icon: User, href: '#' },
-    { name: 'Inventory', icon: Package, href: '#' },
-    { name: 'Map', icon: MapIcon, href: '#' },
-    { name: 'Merchant', icon: ShoppingBag, href: '#' },
+    { name: 'Dashboard', icon: User, href: route('home') },
+    { name: 'Map', icon: MapIcon, href: route('map') },
+    { name: 'Quests', icon: Scroll, href: route('quests') }, // Replaced Merchant/Inventory
 ];
 </script>
 
@@ -99,16 +99,18 @@ const navItems = [
         <div class="flex h-[calc(100vh-64px)] overflow-hidden">
             <!-- Sidebar -->
             <aside class="w-20 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-6 gap-6 z-40">
-                <button 
+                <Link 
                     v-for="item in navItems" 
                     :key="item.name"
+                    :href="item.href"
                     class="group relative flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 text-slate-400 hover:bg-indigo-600 hover:text-white hover:shadow-lg hover:shadow-indigo-500/30"
+                    :class="{ 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30': route().current() === item.href.split('/').pop() }" 
                 >
                     <component :is="item.icon" class="w-6 h-6" />
                     <span class="absolute left-14 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap border border-slate-700">
                         {{ item.name }}
                     </span>
-                </button>
+                </Link>
             </aside>
 
             <!-- Main Content Area -->

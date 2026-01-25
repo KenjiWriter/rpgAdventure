@@ -28,6 +28,14 @@ Route::get('/create-character', function () {
     return Inertia::render('CreateCharacter');
 })->middleware(['auth', 'verified'])->name('character.create');
 
+Route::get('/map', function () {
+    return Inertia::render('WorldMap');
+})->middleware(['auth', 'verified'])->name('map');
+
+Route::get('/quests', function () {
+    return Inertia::render('QuestLog');
+})->middleware(['auth', 'verified'])->name('quests');
+
 Route::post('/character', [\App\Http\Controllers\CharacterController::class, 'store'])
     ->middleware(['auth', 'verified'])
     ->name('character.store');
