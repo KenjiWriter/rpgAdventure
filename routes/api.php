@@ -13,3 +13,6 @@ use App\Http\Controllers\InventoryController;
 Route::get('/character/{id}', [CharacterController::class, 'show']);
 Route::get('/inventory', [InventoryController::class, 'index']);
 Route::post('/inventory/move', [InventoryController::class, 'move']);
+
+use App\Http\Controllers\ForgeController;
+Route::post('/forge/upgrade', [ForgeController::class, 'upgrade']);

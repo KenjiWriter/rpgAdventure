@@ -78,5 +78,13 @@ class GameContentSeeder extends Seeder
             'min_level' => 1,
             'class_restriction' => CharacterClass::MAGE->value,
         ]);
+
+        // Materials
+        ItemTemplate::create([
+            'name' => 'Upgrade Stone',
+            'type' => ItemType::MATERIAL,
+            'base_stats' => [],
+            'min_level' => 1,
+        ]);
     }
 }

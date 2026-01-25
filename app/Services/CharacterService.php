@@ -68,12 +68,18 @@ class CharacterService
 
         foreach ($equippedItems as $item) {
             // Apply item base stats
+            // With Upgrade Scaling: +10% per level
             if ($item->template && $item->template->base_stats) {
+                // Calculate Multiplier
+                $multiplier = 1 + ($item->upgrade_level * 0.10); // 10% per level
+
                 foreach ($item->template->base_stats as $key => $value) {
+                    $upgradedValue = (int) ($value * $multiplier);
+
                     if (isset($totalStats[$key])) {
-                        $totalStats[$key] += $value;
+                        $totalStats[$key] += $upgradedValue;
                     } else {
-                        $totalStats[$key] = $value;
+                        $totalStats[$key] = $upgradedValue;
                     }
                 }
             }
