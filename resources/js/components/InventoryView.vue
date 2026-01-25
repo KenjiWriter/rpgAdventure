@@ -7,7 +7,6 @@ const store = usePlayerStore();
 const backpack = computed(() => store.backpack); // Array of items
 const equipment = computed(() => store.equipment); // Array of equipped items for finding specific slots
 
-
 // Helper to check if a slot has an item
 const getEquippedItem = (slotId: string) => {
     return equipment.value.find((item: any) => item.slot_id === slotId);
@@ -15,14 +14,14 @@ const getEquippedItem = (slotId: string) => {
 
 // Slots definition for visual layout
 const equipmentSlots = [
-    { id: 'head', icon: Shield, label: 'Head' }, // Using Shield as placeholder, could find better icons
+    { id: 'head', icon: Shield, label: 'Head' }, 
     { id: 'amulet', icon: Shield, label: 'Amulet' },
     { id: 'start_bdy', type: 'divider'},
     { id: 'main_hand', icon: Sword, label: 'Main Hand' },
     { id: 'chest', icon: Shirt, label: 'Chest' },
     { id: 'off_hand', icon: Shield, label: 'Off Hand' },
     { id: 'end_bdy', type: 'divider'},
-    { id: 'legs', icon: Gamepad2, label: 'Legs' }, // Placeholder icon
+    { id: 'legs', icon: Gamepad2, label: 'Legs' },
     { id: 'boots', icon: Footprints, label: 'Boots' },
     { id: 'gloves', icon: Shield, label: 'Gloves' },
     { id: 'ring', icon: Shield, label: 'Ring' },
@@ -31,7 +30,6 @@ const equipmentSlots = [
 // Backpack Grid
 const backpackSlots = Array.from({ length: 42 }, (_, i) => i + 1);
 
-// Move Logic
 // Context Menu State
 const contextMenu = ref({
     show: false,
@@ -79,26 +77,11 @@ const getRarityTextColor = (rarity: string) => {
 
 const handleItemClick = async (item: any, source: 'backpack' | 'equipment') => {
     if (!item) return;
-    contextMenu.value.show = false; // Close if open
+    contextMenu.value.show = false; 
 
-    if (!item || !item.item_template) return;
-    contextMenu.value.show = false; // Close if open
-    
-    // ... logic checks item.template ...
-    
-    // ...
-    // Note: The original code logic inside handleItemClick was correct but just needed the guard.
-    // I am replacing the full function logic with just the guard maintained? No, I am editing `handleItemClick` block.
-    // Actually, I'll update the tooltip too in this call if I can, but multiple non-contiguous edits are hard.
-    // Let's use MultiReplace or just two calls.
-    // Wait, the user asked for:
-    // 1. Check in handleItemClick
-    // 2. Tooltip update
-    // I can stick them in one call if I Replace the whole file or large chunks.
-    // I'll stick to targeted replacing.
-    
-    // Check 1: handleItemClick safety.
-    
+    // Guard Clause for Safety
+    if (!item.item_template) return;
+
     if (source === 'backpack') {
         let targetSlot = '';
         
@@ -106,18 +89,25 @@ const handleItemClick = async (item: any, source: 'backpack' | 'equipment') => {
         if (item.template.type === 'weapon') targetSlot = 'main_hand';
         if (item.template.type === 'armor') {
              const name = item.template.name.toLowerCase();
-             if (name.includes('armor') || name.includes('tunic') || name.includes('chest')) targetSlot = 'chest';
+             if (name.includes('armor') || name.includes('tunic') || name.includes('chest') || name.includes('robe')) targetSlot = 'chest';
              if (name.includes('boots') || name.includes('greaves')) targetSlot = 'boots';
              if (name.includes('gloves') || name.includes('gauntlets')) targetSlot = 'gloves';
              if (name.includes('helm') || name.includes('cap')) targetSlot = 'head';
              if (name.includes('legs') || name.includes('pants')) targetSlot = 'legs';
-             if (name.includes('shield')) targetSlot = 'off_hand';
+             if (name.includes('shield') || name.includes('buckler')) targetSlot = 'off_hand';
              if (name.includes('amulet') || name.includes('neck')) targetSlot = 'amulet';
              if (name.includes('ring')) targetSlot = 'ring';
         }
+
+        // Dagger Logic: Assign to offhand if mainhand occupied? Or just mainhand.
+        // For now default to mainhand for generic weapon.
+        if (item.template.name.toLowerCase().includes('dagger')) {
+             if (getEquippedItem('main_hand') && !getEquippedItem('off_hand')) {
+                 // Dual wield logic not fully implemented yet, but let's assume Main Hand for now.
+             }
+        }
         
         if (!targetSlot) {
-            // Fallback: If stats suggest defense, maybe chest?
              return alert("Cannot auto-equip: Unknown slot for " + item.template.name);
         }
         
@@ -141,10 +131,113 @@ const getItemInBackpackSlot = (slotIndex: number) => {
 
 <template>
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- ... -->
-        <!-- Backpack Item Render Update -->
+        
+        <!-- Equipment Panel -->
+        <div class="relative bg-slate-900/80 p-6 rounded-xl border border-slate-800 backdrop-blur-sm">
+            
+            <!-- Lock Overlay (Equipment) -->
+            <div v-if="store.activeMission" class="absolute inset-0 z-50 bg-slate-950/50 backdrop-blur-[1px] cursor-not-allowed"></div>
+
+            <h2 class="text-xl font-bold text-zinc-100 mb-6 border-b border-slate-700 pb-2">Equipment</h2>
+            <div class="flex flex-col items-center gap-4">
+                
+                <div class="grid grid-cols-3 gap-4">
+                    <template v-for="slot in equipmentSlots" :key="slot.id">
+                         <div v-if="slot.type === 'divider'" class="col-span-3 h-0"></div>
+                         <div v-else class="relative group">
+                             <!-- Slot BG -->
+                            <div 
+                                class="w-16 h-16 rounded-lg bg-slate-950 border-2 border-slate-800 flex items-center justify-center transition-colors"
+                                :class="store.activeMission ? 'opacity-50 grayscale' : 'hover:border-indigo-500/50 cursor-pointer'"
+                                @click="!store.activeMission && handleItemClick(getEquippedItem(slot.id), 'equipment')"
+                            >
+                                <component :is="slot.icon" v-if="!getEquippedItem(slot.id)" class="w-6 h-6 text-slate-700" />
+                                
+                                <!-- Item Render -->
+                                <div v-else class="w-full h-full p-1 relative">
+                                    <div class="w-full h-full bg-slate-800 rounded border border-slate-600 flex items-center justify-center text-xs text-center leading-tight">
+                                        {{ getEquippedItem(slot.id)?.template?.name }}
+                                    </div>
+                                    <!-- Tooltip -->
+                                    <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-slate-900 border border-amber-500/30 p-2 rounded shadow-xl z-50 hidden group-hover:block pointer-events-none">
+                                        <div class="text-amber-400 font-bold mb-1">{{ getEquippedItem(slot.id)?.template?.name }}</div>
+                                        
+                                        <!-- Base Stats -->
+                                        <div class="mb-1 border-b border-slate-700 pb-1">
+                                            <div v-if="getEquippedItem(slot.id)?.template?.base_damage" class="text-xs text-red-400 font-bold">
+                                                ⚔️ Damage: {{ getEquippedItem(slot.id)?.template?.base_damage }}
+                                            </div>
+                                            <div v-if="getEquippedItem(slot.id)?.template?.base_defense" class="text-xs text-blue-400 font-bold">
+                                                🛡️ Defense: {{ getEquippedItem(slot.id)?.template?.base_defense }}
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-1">
+                                             <div v-for="bonus in getEquippedItem(slot.id)?.bonuses" class="text-[10px] text-green-400">
+                                                 +{{ bonus.value }} {{ bonus.type }}
+                                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                         </div>
+                    </template>
+                </div>
+            </div>
+            
+             <!-- Stats Summary (Quick View) -->
+             <div class="mt-8 p-4 bg-slate-950/50 rounded-lg border border-slate-800 font-mono text-xs">
+                 <div class="flex justify-between mb-1">
+                     <span class="text-slate-400">Strength</span>
+                     <span class="text-green-400">{{ store.computedStats.strength }}</span>
+                 </div>
+                 <div class="flex justify-between mb-1">
+                     <span class="text-slate-400">Dexterity</span>
+                     <span class="text-green-400">{{ store.computedStats.dexterity }}</span>
+                 </div>
+                 <div class="flex justify-between">
+                     <span class="text-slate-400">Intelligence</span>
+                     <span class="text-green-400">{{ store.computedStats.intelligence }}</span>
+                 </div>
+             </div>
+        </div>
+
+        <!-- Backpack Panel -->
+        <div class="relative lg:col-span-2 bg-slate-900/80 p-6 rounded-xl border border-slate-800 backdrop-blur-sm" @click="closeContextMenu">
+            
+            <!-- Lock Overlay -->
+            <div v-if="store.activeMission" class="absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-[2px] flex flex-col items-center justify-center border border-red-900/30 rounded-xl">
+                <div class="bg-slate-900 p-4 rounded-lg border border-red-600 shadow-2xl flex flex-col items-center gap-2">
+                    <span class="text-3xl">🔒</span>
+                    <h3 class="text-red-500 font-bold uppercase tracking-wider">Inventory Locked</h3>
+                    <p class="text-slate-400 text-xs text-center max-w-[200px]">
+                        You cannot change equipment while on a mission.
+                    </p>
+                </div>
+            </div>
+
+            <h2 class="text-xl font-bold text-zinc-100 mb-6 border-b border-slate-700 pb-2">Backpack</h2>
+            
+            <div class="grid grid-cols-7 gap-2 relative">
+                <div 
+                    v-for="slot in backpackSlots" 
+                    :key="slot"
+                    class="aspect-square bg-slate-950 border border-slate-800 rounded shadow-inner hover:bg-slate-800 transition-colors relative group"
+                    @contextmenu.prevent="handleRightClick($event, getItemInBackpackSlot(slot))"
+                >
+                    <div 
+                        v-if="getItemInBackpackSlot(slot)"
+                        class="w-full h-full p-1 cursor-pointer"
+                        @click="!store.activeMission && handleItemClick(getItemInBackpackSlot(slot), 'backpack')"
+                    >
+                        <!-- Item Rendering with Rarity Colors -->
+                         <div class="w-full h-full rounded border flex items-center justify-center text-[10px] text-center leading-tight overflow-hidden break-words p-0.5 transition-colors"
+                            :class="getRarityColor(getItemInBackpackSlot(slot)?.template?.rarity)">
+                            {{ getItemInBackpackSlot(slot)?.template?.name }}
+                        </div>
+                        
                         <!-- Tooltip -->
-                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-slate-900 border border-slate-600 p-2 rounded shadow-xl z-50 hidden group-hover:block pointer-events-none">
+                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-slate-900 border border-slate-600 p-2 rounded shadow-xl z-30 hidden group-hover:block pointer-events-none">
                             <div class="font-bold mb-1" :class="getRarityTextColor(getItemInBackpackSlot(slot)?.template?.rarity)">
                                 {{ getItemInBackpackSlot(slot)?.template?.name }}
                             </div>
@@ -162,9 +255,9 @@ const getItemInBackpackSlot = (slotIndex: number) => {
                                     🛡️ Defense: {{ getItemInBackpackSlot(slot)?.template?.base_defense }}
                                 </div>
                             </div>
-
+                            
                             <!-- Bonuses -->
-                            <div class="pt-1">
+                            <div class="mt-1 pt-1">
                                     <div v-for="(val, key) in getItemInBackpackSlot(slot)?.template?.base_stats" class="text-[10px] text-slate-300">
                                         {{ key }}: {{ val }}
                                     </div>
