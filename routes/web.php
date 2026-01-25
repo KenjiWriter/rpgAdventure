@@ -45,6 +45,10 @@ Route::get('dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
+    Route::get('/character/{id}/logs', [\App\Http\Controllers\CharacterController::class, 'logs']);
+    Route::get('/quests', [\App\Http\Controllers\QuestController::class, 'index']);
+    Route::post('/quests/{id}/claim', [\App\Http\Controllers\QuestController::class, 'claim']);
+
     Route::get('/character/{id}', [\App\Http\Controllers\CharacterController::class, 'show']);
     Route::get('/inventory', [\App\Http\Controllers\InventoryController::class, 'index']);
     Route::post('/inventory/move', [\App\Http\Controllers\InventoryController::class, 'move']);

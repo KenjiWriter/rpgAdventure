@@ -1,12 +1,22 @@
 <script setup lang="ts">
+import { onMounted, computed } from 'vue';
 import GameLayout from '../layouts/GameLayout.vue';
+import { usePlayerStore } from '../stores/usePlayerStore';
 import { Scroll, CheckCircle2, Circle } from 'lucide-vue-next';
 
-const quests = [
-    { id: 1, title: 'Into the Wild', objective: 'Kill 5 Wild Dogs', progress: 2, total: 5, completed: false },
-    { id: 2, title: 'Herbalist Request', objective: 'Collect 3 Herbs', progress: 3, total: 3, completed: true },
-    { id: 3, title: 'Local Threat', objective: 'Defeat the Alpha Wolf', progress: 0, total: 1, completed: false },
-];
+const store = usePlayerStore();
+const quests = computed(() => store.quests);
+
+onMounted(() => {
+    // We assume layout or previous page loaded char, but fetchLogs/Quests might need refresh
+    if (store.character?.id) {
+        store.fetchPlayerData(store.character.id);
+    }
+});
+
+const handleClaim = async (questId: number) => {
+    await store.claimQuest(questId);
+};
 </script>
 
 <template>
@@ -17,6 +27,10 @@ const quests = [
                     <h1 class="text-3xl font-bold text-white drop-shadow-lg font-serif">Quest Log</h1>
                     <p class="text-slate-400">Track your active objectives.</p>
                 </div>
+            </div>
+
+            <div v-if="quests.length === 0" class="p-12 text-center text-slate-500">
+                No active quests. Visit the town board or explore the world to find new missions.
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -45,16 +59,23 @@ const quests = [
                             </div>
                             <div class="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
                                 <div class="h-full bg-amber-600 transition-all duration-500"
-                                    :style="{ width: `${(quest.progress / quest.total) * 100}%` }"
+                                    :style="{ width: `${(Math.min(quest.progress, quest.total) / quest.total) * 100}%` }"
                                     :class="quest.completed ? 'bg-green-600' : 'bg-amber-600'"
                                 ></div>
                             </div>
                         </div>
 
                         <div v-if="quest.completed" class="mt-4 ml-8">
-                             <button class="px-4 py-2 bg-green-600/20 text-green-400 border border-green-600/50 rounded text-sm hover:bg-green-600/30 transition-colors">
+                             <button 
+                                v-if="!quest.claimed"
+                                @click="handleClaim(quest.id)"
+                                class="px-4 py-2 bg-green-600/20 text-green-400 border border-green-600/50 rounded text-sm hover:bg-green-600/30 transition-colors"
+                             >
                                 Collect Reward
                              </button>
+                             <div v-else class="text-xs text-slate-500 italic mt-2">
+                                 Reward Claimed
+                             </div>
                         </div>
                     </div>
                 </div>

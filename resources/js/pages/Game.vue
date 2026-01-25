@@ -48,38 +48,29 @@ onMounted(() => {
                         </h3>
                         <div class="space-y-4 text-sm text-slate-400 relative z-10">
                             
-                            <!-- Login Event -->
-                            <div class="flex items-start gap-3 p-3 rounded-lg bg-slate-900/50 border border-slate-800/50">
-                                <div class="mt-0.5 text-green-400">
-                                    <LogIn class="w-4 h-4" />
+                        <div class="space-y-4 text-sm text-slate-400 relative z-10">
+                            
+                            <div v-if="store.logs.length === 0" class="text-center py-8 text-slate-600">
+                                No recent activity.
+                            </div>
+
+                            <div v-for="log in store.logs" :key="log.id" 
+                                class="flex items-start gap-3 p-3 rounded-lg bg-slate-900/50 border border-slate-800/50"
+                                :class="{ 'opacity-75': log.type === 'combat', 'opacity-50': log.type === 'loot' }"
+                            >
+                                <div class="mt-0.5">
+                                    <LogIn v-if="log.type === 'system'" class="w-4 h-4 text-green-400" />
+                                    <Sword v-else-if="log.type === 'combat'" class="w-4 h-4 text-red-400" />
+                                    <Sparkles v-else-if="log.type === 'loot'" class="w-4 h-4 text-amber-400" />
+                                    <div v-else class="w-2 h-2 rounded-full bg-slate-500 mt-1"></div>
                                 </div>
                                 <div class="flex-1">
-                                    <p class="text-slate-200">Adventurer <span class="text-white font-bold">{{ store.character?.name }}</span> returned.</p>
-                                    <span class="text-xs text-slate-500">Just now</span>
+                                    <p class="text-slate-200">{{ log.message }}</p>
+                                    <span class="text-xs text-slate-500">{{ new Date(log.created_at).toLocaleString() }}</span>
                                 </div>
                             </div>
 
-                            <!-- Combat Event Example -->
-                            <div class="flex items-start gap-3 p-3 rounded-lg bg-slate-900/50 border border-slate-800/50 opacity-75">
-                                <div class="mt-0.5 text-red-400">
-                                    <Sword class="w-4 h-4" />
-                                </div>
-                                <div class="flex-1">
-                                    <p class="text-slate-300">Defeated <span class="text-red-300">Wild Boar</span></p>
-                                    <span class="text-xs text-slate-500">2 hours ago</span>
-                                </div>
-                            </div>
-
-                             <!-- Loot Event Example -->
-                            <div class="flex items-start gap-3 p-3 rounded-lg bg-slate-900/50 border border-slate-800/50 opacity-50">
-                                <div class="mt-0.5 text-amber-400">
-                                    <Sparkles class="w-4 h-4" />
-                                </div>
-                                <div class="flex-1">
-                                    <p class="text-slate-300">Found <span class="text-amber-300">Rusty Dagger</span></p>
-                                    <span class="text-xs text-slate-500">Yesterday</span>
-                                </div>
-                            </div>
+                        </div>
 
                         </div>
                          <div class="mt-6 text-center text-xs text-slate-600 font-mono">

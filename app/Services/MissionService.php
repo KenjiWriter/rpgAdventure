@@ -95,6 +95,12 @@ class MissionService
                 // Award Logic remains same
                 $monster = $mission->monster;
 
+                // Log Victory
+                $this->charService->logActivity($mission->character, 'combat', "Defeated {$monster->name}!");
+
+                // Update Quests (Kill Monster)
+                $this->updateQuestProgress($mission->character, 'kill_monster', $monster->id);
+
                 // Calculate Rewards
                 // Base (+/- 10%)
                 $gold = (int) ($monster->base_gold * (rand(90, 110) / 100));
@@ -115,8 +121,13 @@ class MissionService
                     if ($template) {
                         $item = $this->itemGenService->generateInstance($template, $mission->character, ItemRarity::COMMON);
                         $rewards['items'][] = $item;
+
+                        // Log Loot
+                        $this->charService->logActivity($mission->character, 'loot', "Found {$item->name}!", ['item_id' => $item->id]);
                     }
                 }
+            } else {
+                $this->charService->logActivity($mission->character, 'combat', "Defeated by {$mission->monster->name}.");
             }
 
             // 3. Finalize
@@ -131,5 +142,31 @@ class MissionService
 
             return $rewards;
         });
+    }
+
+    protected function updateQuestProgress(Character $character, string $type, string $target): void
+    {
+        // Find active quests for this character that match the objective
+        // We assume we have a pivot model CharacterQuest or we query DB directly
+        // Using DB query for MVP or creating model relation. We have CharacterQuest model.
+
+        $activeCharacterQuests = \App\Models\CharacterQuest::where('character_id', $character->id)
+            ->where('is_completed', false)
+            ->whereHas('quest', function ($q) use ($type, $target) {
+                $q->where('objective_type', $type)
+                    ->where('objective_target', $target);
+            })
+            ->with('quest')
+            ->get();
+
+        foreach ($activeCharacterQuests as $charQuest) {
+            $charQuest->increment('progress');
+
+            // Check completion
+            if ($charQuest->progress >= $charQuest->quest->objective_count) {
+                $charQuest->update(['is_completed' => true]);
+                $this->charService->logActivity($character, 'system', "Quest Completed: {$charQuest->quest->title}!");
+            }
+        }
     }
 }

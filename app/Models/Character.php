@@ -47,4 +47,9 @@ class Character extends Model
     {
         return $this->belongsTo(Map::class, 'current_map_id');
     }
+
+    public function logs(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(CharacterLog::class);
+    }
 }

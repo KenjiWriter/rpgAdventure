@@ -176,7 +176,7 @@ const getItemInBackpackSlot = (slotIndex: number) => {
             </div>
             
             <div class="mt-4 flex justify-between items-center text-xs text-slate-500">
-                <span>{{ backpack.length }} / 42 Slots Used</span>
+                <span>{{ store.backpackSlotsUsed }} / {{ store.backpackSlotsTotal }} Slots Used</span>
                 <button class="text-indigo-400 hover:text-indigo-300">Sort Items</button>
             </div>
         </div>
