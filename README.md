@@ -38,10 +38,11 @@ Players can send characters on time-based expeditions to farm XP and Loot.
 1.  **Start**: Client requests `POST /mission/start`. Server validates level and starts a timer.
 2.  **Wait**: Client shows a reactive timer. **Inventory Lockdown** is active: equipment cannot be changed while on a mission to prevent exploiting restrictions or stats during combat calculation.
 3.  **Claim**: Once `ends_at` is reached, Client checks in. Server validates timestamp, runs a Combat Simulation (RNG), and awards loot/XP.
+4.  **Replay**: The Frontend receives the full combat log and plays it back visually using `BattleModal.vue`.
 
 > [!NOTE]
-> **Technical Note: Tickless Timer**
-> The mission duration is validated by comparing `now()` against the database `ends_at` timestamp. This ensures sub-second accuracy and makes client-side clock manipulation impossible.
+> **Technical Highlight: Optimistic Replay**
+> The Battle Replay UI is a purely visual representation of a pre-calculated server state. This ensures zero latency during the "fight" and 100% synchronization between the visual outcome and the actual data updates (HP, Loot, XP).
 
 ### Item Generation Engine
 Items are generated with dynamic bonuses using `ItemGeneratorService`:
@@ -66,6 +67,19 @@ Items are stored in a single `item_instances` table using a polymorphic relation
 
 ### Tickless Engine
 Replenishment (HP/Mana) and Cooldowns are calculated based on timestamps (`last_update_at`) rather than a background looper, ensuring scalability.
+
+---
+
+## 🎨 UI & UX Features
+
+### Battle Replay System
+-   **Visuals**: Smooth HP bar animations, Floating Combat Text (FCT) for Crit/Hit/Miss, and "Shake" effects on impact.
+-   **Controls**: Players can speed up (2x) or Skip the replay.
+-   **Loot Reveal**: Rewards (Items, XP, Gold) are hidden until the battle concludes to maintain suspense and engagement.
+
+### Split Layout
+-   **Left Panel**: Inventory Management (Drag & Drop, Equip/Unequip).
+-   **Right Panel**: Mission Control (Map Selection, Active Timer, Battle Launch).
 
 ---
 
@@ -170,7 +184,7 @@ php artisan verify:forge
 -   [x] **Phase 4: Combat & Missions**:
     -   [x] **Missions**: Turn-based/Timer-based questing system.
     -   [x] **Combat**: Time-based Deterministic Engine (Logic).
-    -   [ ] **Combat UI**: Visual Replay Modal.
+    -   [x] **Combat UI**: Visual Replay Modal (FCT, Animations).
     -   [ ] **Merchant**: Buying/Selling items.
 -   [ ] **Phase 5: Social & Economy**:
     -   **Auction House**: Player-to-player trading.
