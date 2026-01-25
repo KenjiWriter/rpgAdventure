@@ -84,7 +84,18 @@ const getItemInBackpackSlot = (slotIndex: number) => {
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         <!-- Equipment Panel -->
-        <div class="bg-slate-900/80 p-6 rounded-xl border border-slate-800 backdrop-blur-sm">
+        <div class="relative bg-slate-900/80 p-6 rounded-xl border border-slate-800 backdrop-blur-sm">
+            
+            <!-- Lock Overlay (Equipment) -->
+            <div v-if="store.activeMission" class="absolute inset-0 z-50 bg-transparent cursor-not-allowed">
+                 <!-- Tooltip logic via simple overlay that prevents clicks handled by CSS/Z-Index or click handler checks.
+                      But we placed a full overlay on the wrapping grid cell or here? 
+                      The Backpack has a visible lock. Equipment can just be disabled visually or same lock.
+                      Let's stick to standard behavior: If backpack is locked, equipment is usually locked too.
+                      We can just use one big overlay or repeat. Repeating ensures layout.
+                 -->
+            </div>
+
             <h2 class="text-xl font-bold text-zinc-100 mb-6 border-b border-slate-700 pb-2">Equipment</h2>
             <div class="flex flex-col items-center gap-4">
                 
@@ -95,8 +106,9 @@ const getItemInBackpackSlot = (slotIndex: number) => {
                          <div v-else class="relative group">
                              <!-- Slot BG -->
                             <div 
-                                class="w-16 h-16 rounded-lg bg-slate-950 border-2 border-slate-800 flex items-center justify-center hover:border-indigo-500/50 transition-colors cursor-pointer"
-                                @click="handleItemClick(getEquippedItem(slot.id), 'equipment')"
+                                class="w-16 h-16 rounded-lg bg-slate-950 border-2 border-slate-800 flex items-center justify-center transition-colors"
+                                :class="store.activeMission ? 'opacity-50 grayscale' : 'hover:border-indigo-500/50 cursor-pointer'"
+                                @click="!store.activeMission && handleItemClick(getEquippedItem(slot.id), 'equipment')"
                             >
                                 <component :is="slot.icon" v-if="!getEquippedItem(slot.id)" class="w-6 h-6 text-slate-700" />
                                 
@@ -140,7 +152,19 @@ const getItemInBackpackSlot = (slotIndex: number) => {
         </div>
 
         <!-- Backpack Panel -->
-        <div class="lg:col-span-2 bg-slate-900/80 p-6 rounded-xl border border-slate-800 backdrop-blur-sm">
+        <div class="relative lg:col-span-2 bg-slate-900/80 p-6 rounded-xl border border-slate-800 backdrop-blur-sm">
+            
+            <!-- Lock Overlay -->
+            <div v-if="store.activeMission" class="absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-[2px] flex flex-col items-center justify-center border border-red-900/30 rounded-xl">
+                <div class="bg-slate-900 p-4 rounded-lg border border-red-600 shadow-2xl flex flex-col items-center gap-2">
+                    <span class="text-3xl">🔒</span>
+                    <h3 class="text-red-500 font-bold uppercase tracking-wider">Inventory Locked</h3>
+                    <p class="text-slate-400 text-xs text-center max-w-[200px]">
+                        You cannot change equipment while on a mission.
+                    </p>
+                </div>
+            </div>
+
             <h2 class="text-xl font-bold text-zinc-100 mb-6 border-b border-slate-700 pb-2">Backpack</h2>
             
             <div class="grid grid-cols-7 gap-2">
@@ -152,7 +176,7 @@ const getItemInBackpackSlot = (slotIndex: number) => {
                     <div 
                         v-if="getItemInBackpackSlot(slot)"
                         class="w-full h-full p-1 cursor-pointer"
-                        @click="handleItemClick(getItemInBackpackSlot(slot), 'backpack')"
+                        @click="!store.activeMission && handleItemClick(getItemInBackpackSlot(slot), 'backpack')"
                     >
                          <div class="w-full h-full bg-slate-800 rounded border border-slate-700 flex items-center justify-center text-[8px] text-center leading-tight overflow-hidden break-words p-0.5">
                             {{ getItemInBackpackSlot(slot)?.template?.name }}

@@ -1,13 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { usePlayerStore } from '../stores/usePlayerStore';
-import { Link } from '@inertiajs/vue3';
-import { Shield, Map as MapIcon, User, Package, ShoppingBag, Scroll } from 'lucide-vue-next';
+import { Link, router } from '@inertiajs/vue3';
+import { Shield, Map as MapIcon, User, Package, ShoppingBag, Scroll, Loader2, AlertCircle } from 'lucide-vue-next';
 import BattleModal from '../components/BattleModal.vue';
-
-// Assuming store is initialized by a parent or we initialize here if ID is known?
-// Usually layout is wrapped around pages.
-// We display global stats from store.
 
 const store = usePlayerStore();
 
@@ -18,11 +14,63 @@ const expPercent = computed(() => store.experiencePercent);
 const maxHp = computed(() => store.maxHp);
 const maxMana = computed(() => store.maxMana);
 
-// Navigation
+// Mission Timer Logic
+const missionTimeLeft = ref(0);
+let missionInterval: any = null;
+
+const activeMission = computed(() => store.activeMission);
+
+// Watch for mission changes to start/stop timer handled in layout to be global
+// Or just reactively update from store if store handles the timer? 
+// Store just holds data. Layout handles UI timer.
+import { watch } from 'vue';
+
+watch(activeMission, (newMission) => {
+    if (newMission) {
+        startTimer(newMission.ends_at);
+        // If on Map page, and mission starts, redirect? 
+        // User requested: "If a player clicks "Map" while a mission is active, automatically redirected to the active mission view" -> This implies limiting nav or handling inside Map view.
+    } else {
+        stopTimer();
+    }
+}, { immediate: true });
+
+function startTimer(endsAtStr: string) {
+    stopTimer();
+    const endsAt = new Date(endsAtStr).getTime();
+    
+    missionInterval = setInterval(() => {
+        const now = Date.now();
+        const diff = endsAt - now;
+        missionTimeLeft.value = Math.max(0, Math.ceil(diff / 1000));
+        
+        if (missionTimeLeft.value <= 0) {
+            stopTimer(); // Timer done, wait for claim
+        }
+    }, 1000);
+}
+
+function stopTimer() {
+    if (missionInterval) clearInterval(missionInterval);
+    missionTimeLeft.value = 0;
+}
+
+const missionReady = computed(() => !!activeMission.value && missionTimeLeft.value <= 0);
+
+// Navigation Interception
+function handleNav(href: string) {
+    if (activeMission.value && href.includes('map')) {
+        // We are already on map/mission view? 
+        // If not, go there.
+        // Actually, MissionView IS inside WorldMap. So just going to 'map' is correct.
+    }
+}
+// Using standard Links but adding indicators.
+
 const navItems = [
     { name: 'Dashboard', icon: User, href: route('home') },
     { name: 'Map', icon: MapIcon, href: route('map') },
-    { name: 'Quests', icon: Scroll, href: route('quests') }, // Replaced Merchant/Inventory
+    { name: 'Quests', icon: Scroll, href: route('quests') },
 ];
 </script>
 
@@ -107,6 +155,15 @@ const navItems = [
                     :class="{ 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30': route().current() === item.href.split('/').pop() }" 
                 >
                     <component :is="item.icon" class="w-6 h-6" />
+                    
+                    <!-- Sidebar Badges -->
+                    <div v-if="item.name === 'Map' && activeMission" 
+                         class="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-slate-900"
+                         :class="missionReady ? 'bg-red-500 text-white animate-bounce' : 'bg-indigo-400 text-white'">
+                        <span v-if="missionReady">!</span>
+                        <span v-else>{{ missionTimeLeft }}</span>
+                    </div>
+
                     <span class="absolute left-14 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap border border-slate-700">
                         {{ item.name }}
                     </span>

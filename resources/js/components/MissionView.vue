@@ -1,18 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, onUnmounted } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { usePlayerStore } from '../stores/usePlayerStore';
 import axios from 'axios';
 import { Swords, Clock, X } from 'lucide-vue-next';
 
 const store = usePlayerStore();
-const activeMission = ref<any>(null);
 const loading = ref(false);
-const timeLeft = ref(0);
-let timerInterval: any = null;
 
 // Maps
 const maps = ref<any[]>([]);
 const loadingMaps = ref(false);
+
+const activeMission = computed(() => store.activeMission);
 
 const getDifficulty = (lvl: number) => {
     if (lvl <= 2) return 'Easy';
@@ -20,32 +19,62 @@ const getDifficulty = (lvl: number) => {
     return 'Hard';
 };
 
-const hasActiveMission = computed(() => !!activeMission.value);
-const canClaim = computed(() => timeLeft.value <= 0 && hasActiveMission.value);
-
 onMounted(async () => {
-    if (!store.character && store.character?.id) {
-         // If character ID known but not loaded? Store naming is characterId usually passed or user known.
-         // Actually, how do we know the ID?
-         // In web.php, we pass user to view? No, inertia.
-         // Maybe we rely on the backend to tell us the character?
-         // Or getting it from props?
-         // `Game.vue` gets `characterId` prop. `WorldMap.vue` does NOT.
-         // We need to pass character info to `WorldMap` or fetch it via a "me" endpoint.
-         // `GameLayout` uses `usePage`?
-         // Let's assume for MVP we fetch based on what we have or fix the route to pass the character.
-         // The `WorldMap.vue` is rendered in `web.php` for `/map` without props.
-         // Let's change `web.php` to pass `character` or have `WorldMap` fetch "my character".
-         // `QuestController` gets `auth()->user()->characters()->firstOrFail()`.
-         // We can add `store.fetchActiveCharacter()`?
-         // Or just update `web.php` to pass the character ID to the Map view.
-    }
-    await Promise.all([checkActiveMission(), fetchMaps()]);
+    await fetchMaps();
+    // store.checkActiveMission() is called in Layout/Store init, but good to ensure
+    await store.checkActiveMission();
 });
 
-onUnmounted(() => {
+// Auto-Claim Logic managed via Store/Layout timer, but we can also trigger here if open
+// Actually, Layout handles the Global Timer. Here we just want to visualize it.
+// We need a local timer to show the countdown OR just use the diff relative to ends_at reactively?
+// A reactive timer is better.
+
+const timeLeft = ref(0);
+let timerInterval: any = null;
+
+watch(activeMission, (mission) => {
+    if (mission) {
+        startTimer(mission.ends_at);
+    } else {
+        stopTimer();
+    }
+}, { immediate: true });
+
+function startTimer(endsAtStr: string) {
+    stopTimer();
+    const endsAt = new Date(endsAtStr).getTime();
+    
+    // Initial check
+    updateTime(endsAt);
+
+    timerInterval = setInterval(() => {
+        updateTime(endsAt);
+    }, 1000);
+}
+
+function updateTime(endsAt: number) {
+    const now = Date.now();
+    const diff = endsAt - now;
+    timeLeft.value = Math.max(0, Math.ceil(diff / 1000));
+    
+    // Auto Claim Trigger from VIEW if user is staring at it?
+    // Or should the STORE handle auto-claim? 
+    // If we rely on the View, the user must be on the page.
+    // User requirement: "Automatically trigger ... when the countdown finishes". 
+    // If they are on Dashboard, the pulse happens. If they click it, they go here.
+    // If they are HERE, it should just happen.
+    
+    if (timeLeft.value <= 0 && activeMission.value && !loading.value) {
+        // Attempt claim
+        claim();
+        stopTimer();
+    }
+}
+
+function stopTimer() {
     if (timerInterval) clearInterval(timerInterval);
-});
+}
 
 async function fetchMaps() {
     loadingMaps.value = true;
@@ -59,53 +88,11 @@ async function fetchMaps() {
     }
 }
 
-async function checkActiveMission() {
-    if (!store.character?.id) return;
-    try {
-        const res = await axios.get(`/api/mission/active?character_id=${store.character.id}`);
-        if (res.data.mission) {
-            activeMission.value = res.data.mission;
-            startTimer(res.data.mission.ends_at, res.data.server_time);
-        } else {
-            activeMission.value = null;
-        }
-    } catch (e) {
-        console.error(e);
-    }
-}
-
-function startTimer(endsAtStr: string, serverTimeStr: string) {
-    const endsAt = new Date(endsAtStr).getTime();
-    // Calculate offset if needed, but for simplicity use local browser relative time if server time provided
-    // Ideally sync with server offset.
-    // Let's just count down to endsAt.
-    
-    if (timerInterval) clearInterval(timerInterval);
-    
-    timerInterval = setInterval(() => {
-        const now = Date.now();
-        // Adjust for potential timezone diff if endsAt is UTC? Laravel sends ISO8601 usually.
-        // Assuming endsAt is comparable to Date.now().
-        // If not, use diff from serverTime vs local time.
-        // Simple fallback:
-        const diff = endsAt - now;
-        timeLeft.value = Math.max(0, Math.ceil(diff / 1000));
-        
-        if (timeLeft.value <= 0) {
-            clearInterval(timerInterval);
-        }
-    }, 1000);
-}
-
 async function startMission(mapId: number) {
     loading.value = true;
     try {
-        await axios.post('/api/mission/start', {
-            character_id: store.character.id,
-            map_id: mapId
-        });
-        await checkActiveMission();
-    } catch (e) {
+        await store.startMission(mapId);
+    } catch (e: any) {
         alert("Failed to start mission: " + e.response?.data?.message);
     } finally {
         loading.value = false;
@@ -117,11 +104,9 @@ async function claim() {
     loading.value = true;
     try {
         await store.claimMission(activeMission.value.id);
-        // On success, Modal opens via store watcher in Layout.
-        // Reset local state
-        activeMission.value = null;
-    } catch (e) {
-        alert("Failed to claim: " + e.response?.data?.message);
+        // BattleModal opens automatically via store
+    } catch (e: any) {
+        console.error("Failed to claim (might be too early or already claimed)", e);
     } finally {
         loading.value = false;
     }
@@ -142,21 +127,21 @@ function formatTime(sec: number) {
         </h2>
 
         <!-- Active Mission State -->
-        <div v-if="hasActiveMission" class="p-4 bg-slate-800 rounded border border-slate-600 flex justify-between items-center">
-            <div>
-                <div class="font-bold text-indigo-300">{{ activeMission.monster.name }}</div>
-                <div class="text-xs text-slate-400">Target Level: {{ activeMission.monster.level || '?' }}</div>
+        <div v-if="activeMission" class="p-6 bg-slate-800 rounded border border-slate-600 flex flex-col gap-4 text-center items-center justify-center min-h-[200px]">
+            <div class="animate-pulse">
+                <div class="font-bold text-2xl text-indigo-300">{{ activeMission.monster.name }}</div>
+                <div class="text-sm text-slate-400">Target Level: {{ activeMission.monster.level || '?' }}</div>
             </div>
 
-            <div v-if="!canClaim" class="flex items-center gap-2 text-2xl font-mono text-white">
-                <Clock class="w-5 h-5 text-slate-400 animate-pulse" />
+            <div class="flex flex-col items-center gap-2 text-4xl font-mono text-white">
+                <Clock class="w-8 h-8 text-slate-400" :class="{ 'animate-spin': timeLeft > 0 }" />
                 {{ formatTime(timeLeft) }}
+                <div class="text-xs text-slate-500 font-sans tracking-wide uppercase">Traveling to location...</div>
             </div>
-
-            <button v-else @click="claim" :disabled="loading" 
-                class="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded animate-bounce shadow-lg shadow-yellow-500/20">
-                Battle!
-            </button>
+            
+            <div v-if="timeLeft <= 0" class="text-yellow-400 font-bold animate-bounce">
+                Encounter Imminent!
+            </div>
         </div>
 
         <!-- Map Selection -->

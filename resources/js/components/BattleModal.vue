@@ -8,6 +8,7 @@ const store = usePlayerStore();
 const isPlaying = ref(false);
 const playbackSpeed = ref(1);
 const currentTick = ref(0);
+const showVs = ref(false);
 const battleEvents = ref<any[]>([]); // Copy of log
 const processedEventIndex = ref(0);
 const floatingTexts = ref<any[]>([]);
@@ -54,6 +55,7 @@ function initBattle() {
     currentTick.value = 0;
     processedEventIndex.value = 0;
     showRewards.value = false;
+    showVs.value = true; // Show VS initially
     floatingTexts.value = [];
 
     // Init Hero
@@ -92,7 +94,13 @@ function initBattle() {
     
     // Start Loop
     lastFrameTime = performance.now();
-    requestAnimationFrame(gameLoop);
+    
+    // VS Splash logic
+    showVs.value = true;
+    setTimeout(() => {
+        showVs.value = false;
+        requestAnimationFrame(gameLoop);
+    }, 2000); // 2 seconds splash
 }
 
 let lastFrameTime = 0;
@@ -126,7 +134,10 @@ function gameLoop(timestamp: number) {
         return;
     }
 
-    requestAnimationFrame(gameLoop);
+    // Keep loop running if not ended
+    if (processedEventIndex.value < battleEvents.value.length) {
+        requestAnimationFrame(gameLoop);
+    }
 }
 
 function applyEvent(event: any) {
@@ -334,6 +345,24 @@ function skip() {
                 </button>
             </div>
             
+            <!-- VS Overlay -->
+            <div v-if="showVs" class="absolute inset-0 z-50 bg-black flex flex-col items-center justify-center animate-pulse">
+                 <h1 class="text-6xl font-black text-red-600 italic tracking-tighter drop-shadow-[0_0_15px_rgba(220,38,38,0.8)] scale-150 transform transition-transform duration-500">
+                     VS
+                 </h1>
+                 <div class="mt-8 flex items-center gap-12 text-white">
+                      <div class="text-right">
+                          <div class="text-3xl font-bold">{{ battleData?.participants.hero.name }}</div>
+                          <div class="text-slate-400">Level {{ battleData?.participants.hero.level }} Hero</div>
+                      </div>
+                      <div class="h-16 w-1 bg-white/20"></div>
+                      <div class="text-left">
+                          <div class="text-3xl font-bold text-red-500">{{ battleData?.participants.monster?.name || 'Monster' }}</div>
+                          <div class="text-slate-400">Level {{ battleData?.participants.monster?.level || '?' }} Enemy</div>
+                      </div>
+                 </div>
+            </div>
+
         </div>
     </div>
 </template>

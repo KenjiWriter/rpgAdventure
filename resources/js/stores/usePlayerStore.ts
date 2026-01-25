@@ -8,6 +8,7 @@ export const usePlayerStore = defineStore('player', {
         inventory: [] as any[],
         activeBattle: null as any,
         showBattleModal: false,
+        activeMission: null as any, // Added global active mission
         logs: [] as any[],
         quests: [] as any[],
     }),
@@ -20,7 +21,7 @@ export const usePlayerStore = defineStore('player', {
         },
         backpack: (state) => state.inventory,
         backpackSlotsUsed: (state) => state.inventory.length,
-        backpackSlotsTotal: (state) => state.character?.inventory_slots || 30, // Default if missing
+        backpackSlotsTotal: (state) => state.character?.inventory_slots || 30,
         computedStats: (state) => state.character?.stats?.computed_stats || {},
         maxHp: (state) => state.character?.stats?.computed_stats?.max_hp || 100,
         maxMana: (state) => state.character?.stats?.computed_stats?.max_mana || 50,
@@ -38,21 +39,18 @@ export const usePlayerStore = defineStore('player', {
             const pageProps = usePage().props;
             if (pageProps.auth?.character) {
                 this.character = pageProps.auth.character;
-                // We might still want to fetch fresh data (inventory etc)
-                // But we have the ID now.
                 if (this.character.id) {
-                    this.fetchPlayerData(this.character.id);
+                    await Promise.all([
+                        this.fetchPlayerData(this.character.id),
+                        this.checkActiveMission()
+                    ]);
                 }
             }
         },
 
         async fetchPlayerData(characterId: string) {
-            if (!characterId) {
-                console.warn('fetchPlayerData called with no ID');
-                return;
-            }
+            if (!characterId) return;
             try {
-                // Parallel fetch
                 const [charRes, invRes, logsRes, questsRes] = await Promise.all([
                     axios.get(`/api/character/${characterId}`),
                     axios.get(`/api/inventory?character_id=${characterId}`),
@@ -73,6 +71,21 @@ export const usePlayerStore = defineStore('player', {
             }
         },
 
+        async checkActiveMission() {
+            if (!this.character?.id) return;
+            try {
+                const res = await axios.get(`/api/mission/active?character_id=${this.character.id}`);
+                if (res.data.mission) {
+                    this.activeMission = res.data.mission;
+                } else {
+                    this.activeMission = null;
+                }
+            } catch (e) {
+                console.error("Failed to check active mission:", e);
+                this.activeMission = null;
+            }
+        },
+
         async fetchLogs(characterId: string) {
             try {
                 const response = await axios.get(`/api/character/${characterId}/logs`);
@@ -85,7 +98,6 @@ export const usePlayerStore = defineStore('player', {
         async claimQuest(questId: number) {
             try {
                 const response = await axios.post(`/api/quests/${questId}/claim`);
-                // Update specific quest state or refetch
                 await this.fetchPlayerData(this.character.id);
                 return response.data;
             } catch (error) {
@@ -108,8 +120,24 @@ export const usePlayerStore = defineStore('player', {
             }
         },
 
+        async startMission(mapId: number) {
+            try {
+                await axios.post('/api/mission/start', {
+                    character_id: this.character.id,
+                    map_id: mapId
+                });
+                await this.checkActiveMission();
+            } catch (error) {
+                console.error('Failed to start mission:', error);
+                throw error;
+            }
+        },
+
         async claimMission(missionId: string) {
             try {
+                // Capture monster details BEFORE claim (as activeMission might be cleared)
+                const monster = this.activeMission?.monster;
+
                 const response = await axios.post('/api/mission/claim', { mission_id: missionId });
                 const rewards = response.data.rewards;
 
@@ -120,6 +148,8 @@ export const usePlayerStore = defineStore('player', {
                         winnerId: rewards.won ? this.character.id : null,
                         participants: {
                             hero: this.character,
+                            // Pass monster details for VS screen
+                            monster: monster || { name: 'Unknown', level: '?', max_hp: 100 }
                         },
                         rewards: {
                             gold: rewards.gold,
@@ -130,7 +160,10 @@ export const usePlayerStore = defineStore('player', {
                     this.showBattleModal = true;
                 }
 
-                // Refresh player data (gold/exp/items/logs/quests)
+                // Clear active mission locally immediately (it's claimed)
+                this.activeMission = null;
+
+                // Refresh player data
                 await this.fetchPlayerData(this.character.id);
 
                 return response.data;
