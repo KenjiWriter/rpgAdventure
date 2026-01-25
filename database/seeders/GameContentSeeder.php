@@ -93,16 +93,38 @@ class GameContentSeeder extends Seeder
             [
                 'name' => 'Rusty Shortsword',
                 'type' => ItemType::WEAPON,
-                'damage' => 5,
+                'damage_min' => 5,
+                'damage_max' => 8,
                 'defense' => 0,
                 'base' => ['strength' => 2],
                 'lvl' => 1,
                 'class' => CharacterClass::WARRIOR->value
             ],
             [
+                'name' => 'Rusty Dagger',
+                'type' => ItemType::WEAPON,
+                'damage_min' => 3,
+                'damage_max' => 5,
+                'defense' => 0,
+                'base' => ['dexterity' => 1],
+                'lvl' => 1,
+                'class' => CharacterClass::ASSASSIN->value
+            ],
+            [
+                'name' => 'Apprentice Staff',
+                'type' => ItemType::WEAPON,
+                'damage_min' => 8,
+                'damage_max' => 12,
+                'defense' => 0,
+                'base' => ['intelligence' => 3],
+                'lvl' => 1,
+                'class' => CharacterClass::MAGE->value
+            ],
+            [
                 'name' => 'Old Leather Tunic',
                 'type' => ItemType::ARMOR,
-                'damage' => 0,
+                'damage_min' => 0,
+                'damage_max' => 0,
                 'defense' => 6,
                 'base' => ['vitality' => 1],
                 'lvl' => 1,
@@ -111,29 +133,18 @@ class GameContentSeeder extends Seeder
             [
                 'name' => 'Cracked Buckler',
                 'type' => ItemType::ARMOR,
-                'damage' => 1,
+                'damage_min' => 1,
+                'damage_max' => 2,
                 'defense' => 4,
                 'base' => ['vitality' => 2],
                 'lvl' => 1,
                 'class' => CharacterClass::WARRIOR->value
             ],
             [
-                'name' => 'Rusty Dagger',
-                'type' => ItemType::WEAPON,
-                'damage' => 3,
-                'defense' => 0,
-                // +10% Attack Speed?? We don't have 'attack_speed_pct' column or bonus type explicitly handled yet in pure stats?
-                // Let's add it to 'base_stats' JSON as a bonus for now.
-                'base' => ['dexterity' => 1], // Implicit speed via dex? Or explicit bonus.
-                // Assuming bonus calculation handles 'attack_speed'.
-                // Ideally ItemGenerator handles this. For template base stats, we just put it in JSON.
-                'lvl' => 1,
-                'class' => CharacterClass::ASSASSIN->value
-            ],
-            [
-                'name' => 'Faded Robe', // Keeping for Mage
+                'name' => 'Faded Robe',
                 'type' => ItemType::ARMOR,
-                'damage' => 0,
+                'damage_min' => 0,
+                'damage_max' => 0,
                 'defense' => 3,
                 'base' => ['intelligence' => 2],
                 'lvl' => 1,
@@ -146,7 +157,8 @@ class GameContentSeeder extends Seeder
                 ['name' => $s['name']],
                 [
                     'type' => $s['type'],
-                    'base_damage' => $s['damage'] ?? 0,
+                    'base_damage_min' => $s['damage_min'] ?? 0,
+                    'base_damage_max' => $s['damage_max'] ?? 0,
                     'base_defense' => $s['defense'] ?? 0,
                     'base_stats' => $s['base'],
                     'min_level' => $s['lvl'],

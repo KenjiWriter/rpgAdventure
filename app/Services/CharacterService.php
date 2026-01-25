@@ -90,28 +90,41 @@ class CharacterService
             ->get();
 
         foreach ($equippedItems as $item) {
-            // Apply item base stats
+            // Apply item base stats (Attributes)
             // With Upgrade Scaling: +10% per level
-            if ($item->template && $item->template->base_stats) {
-                // Calculate Multiplier
-                $multiplier = 1 + ($item->upgrade_level * 0.10); // 10% per level
+            if ($item->template) {
+                $multiplier = 1 + ($item->upgrade_level * 0.10);
 
-                foreach ($item->template->base_stats as $key => $value) {
-                    $upgradedValue = (int) ($value * $multiplier);
+                // Base Damage / Defense
+                if ($item->template->base_damage_min) {
+                    $dmgMin = (int) ($item->template->base_damage_min * $multiplier);
+                    $dmgMax = (int) (($item->template->base_damage_max ?: $item->template->base_damage_min) * $multiplier); // Fallback to min if max missing
 
-                    if (isset($totalStats[$key])) {
-                        $totalStats[$key] += $upgradedValue;
-                    } else {
-                        $totalStats[$key] = $upgradedValue;
+                    $totalStats['damage_min'] += $dmgMin;
+                    $totalStats['damage_max'] += $dmgMax;
+                }
+                if ($item->template->base_defense) {
+                    $totalStats['defense'] += (int) ($item->template->base_defense * $multiplier);
+                }
+
+                if ($item->template->base_stats) {
+                    foreach ($item->template->base_stats as $key => $value) {
+                        $upgradedValue = (int) ($value * $multiplier);
+                        if (isset($totalStats[$key])) {
+                            $totalStats[$key] += $upgradedValue;
+                        } else {
+                            $totalStats[$key] = $upgradedValue;
+                        }
                     }
                 }
             }
 
-            // Apply item bonuses
+            // ... bonuses ...
             if ($item->bonuses) {
                 foreach ($item->bonuses as $bonus) {
                     if (isset($bonus['type']) && isset($bonus['value'])) {
                         $key = $bonus['type'];
+                        // Handle damage/defense bonuses if they exist
                         if (isset($totalStats[$key])) {
                             $totalStats[$key] += $bonus['value'];
                         } else {
@@ -122,10 +135,9 @@ class CharacterService
             }
         }
 
-        // Cache the computed stats
+        // ...
 
-        // Final Damage Calculation based on Attributes
-        // Formula: Base Weapon Damage + (Main Stat * 0.5)
+        // Final Damage
         $mainStatValue = match ($character->class) {
             CharacterClass::WARRIOR => $totalStats['strength'],
             CharacterClass::ASSASSIN => $totalStats['dexterity'],
@@ -133,15 +145,10 @@ class CharacterService
             default => $totalStats['strength'],
         };
 
-        // Ensure keys exist from items or default to 0 (Unarmed)
-        $weaponMin = $totalStats['damage_min'] ?? 1;
-        $weaponMax = $totalStats['damage_max'] ?? 2;
-
-        // Add Stat Bonus
         $statBonus = (int) ($mainStatValue * 0.5);
-
-        $totalStats['damage_min'] = $weaponMin + $statBonus;
-        $totalStats['damage_max'] = $weaponMax + $statBonus;
+        // Base Unarmed is 1-2
+        $totalStats['damage_min'] = max(1, $totalStats['damage_min'] + $statBonus);
+        $totalStats['damage_max'] = max(2, $totalStats['damage_max'] + $statBonus + 1); // +1 variance
 
         $baseStats->update(['computed_stats' => $totalStats]);
 

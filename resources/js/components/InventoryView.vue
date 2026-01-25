@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { usePlayerStore } from '../stores/usePlayerStore';
 import { Sword, Shield, Shirt, Footprints, Gamepad2 } from 'lucide-vue-next';
+import ItemTooltip from './ItemTooltip.vue';
 
 const store = usePlayerStore();
 const backpack = computed(() => store.backpack); // Array of items
@@ -76,11 +77,12 @@ const getRarityTextColor = (rarity: string) => {
 };
 
 const handleItemClick = async (item: any, source: 'backpack' | 'equipment') => {
+    console.log('Interacting with item:', item);
     if (!item) return;
     contextMenu.value.show = false; 
 
     // Guard Clause for Safety
-    if (!item.item_template) return;
+    if (!item?.template) return;
 
     if (source === 'backpack') {
         let targetSlot = '';
@@ -109,6 +111,16 @@ const handleItemClick = async (item: any, source: 'backpack' | 'equipment') => {
         
         if (!targetSlot) {
              return alert("Cannot auto-equip: Unknown slot for " + item.template.name);
+        }
+        
+        // Level Lock
+        if ((item.template.min_level || 1) > store.character.level) {
+            return alert(`Level too low! Required: ${item.template.min_level}`);
+        }
+        
+        // Class Restriction Check
+        if (item.template.class_restriction && item.template.class_restriction !== store.character.class) {
+            return alert(`Cannot equip! This item is for ${item.template.class_restriction}s only.`);
         }
         
         await store.moveItem(item.id, 'character', targetSlot);
@@ -159,25 +171,11 @@ const getItemInBackpackSlot = (slotIndex: number) => {
                                         {{ getEquippedItem(slot.id)?.template?.name }}
                                     </div>
                                     <!-- Tooltip -->
-                                    <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-slate-900 border border-amber-500/30 p-2 rounded shadow-xl z-50 hidden group-hover:block pointer-events-none">
-                                        <div class="text-amber-400 font-bold mb-1">{{ getEquippedItem(slot.id)?.template?.name }}</div>
-                                        
-                                        <!-- Base Stats -->
-                                        <div class="mb-1 border-b border-slate-700 pb-1">
-                                            <div v-if="getEquippedItem(slot.id)?.template?.base_damage" class="text-xs text-red-400 font-bold">
-                                                ⚔️ Damage: {{ getEquippedItem(slot.id)?.template?.base_damage }}
-                                            </div>
-                                            <div v-if="getEquippedItem(slot.id)?.template?.base_defense" class="text-xs text-blue-400 font-bold">
-                                                🛡️ Defense: {{ getEquippedItem(slot.id)?.template?.base_defense }}
-                                            </div>
-                                        </div>
-
-                                        <div class="mt-1">
-                                             <div v-for="bonus in getEquippedItem(slot.id)?.bonuses" class="text-[10px] text-green-400">
-                                                 +{{ bonus.value }} {{ bonus.type }}
-                                             </div>
-                                        </div>
-                                    </div>
+                                    <ItemTooltip 
+                                        :item="getEquippedItem(slot.id)" 
+                                        :character-level="store.character.level"
+                                        class="hidden group-hover:block"
+                                    />
                                 </div>
                             </div>
                          </div>
@@ -236,37 +234,14 @@ const getItemInBackpackSlot = (slotIndex: number) => {
                             {{ getItemInBackpackSlot(slot)?.template?.name }}
                         </div>
                         
-                        <!-- Tooltip -->
-                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-slate-900 border border-slate-600 p-2 rounded shadow-xl z-30 hidden group-hover:block pointer-events-none">
-                            <div class="font-bold mb-1" :class="getRarityTextColor(getItemInBackpackSlot(slot)?.template?.rarity)">
-                                {{ getItemInBackpackSlot(slot)?.template?.name }}
-                            </div>
-                            <div class="text-[10px] text-slate-400 mb-1 flex justify-between">
-                                <span>{{ getItemInBackpackSlot(slot)?.template?.type }}</span>
-                                <span class="text-xs font-bold text-white">Lvl {{ getItemInBackpackSlot(slot)?.template?.min_level }}</span>
-                            </div>
-
-                            <!-- Base Stats -->
-                            <div class="mb-1 border-b border-slate-700 pb-1">
-                                <div v-if="getItemInBackpackSlot(slot)?.template?.base_damage" class="text-xs text-red-400 font-bold">
-                                    ⚔️ Damage: {{ getItemInBackpackSlot(slot)?.template?.base_damage }}
-                                </div>
-                                <div v-if="getItemInBackpackSlot(slot)?.template?.base_defense" class="text-xs text-blue-400 font-bold">
-                                    🛡️ Defense: {{ getItemInBackpackSlot(slot)?.template?.base_defense }}
-                                </div>
-                            </div>
-                            
-                            <!-- Bonuses -->
-                            <div class="mt-1 pt-1">
-                                    <div v-for="(val, key) in getItemInBackpackSlot(slot)?.template?.base_stats" class="text-[10px] text-slate-300">
-                                        {{ key }}: {{ val }}
-                                    </div>
-                                    <div v-for="bonus in getItemInBackpackSlot(slot)?.bonuses" class="text-[10px] text-green-400">
-                                        +{{ bonus.value }} {{ bonus.type }}
-                                    </div>
-                            </div>
-                            <div class="text-[10px] text-slate-500 mt-1 italic">Left-click to Equip</div>
-                        </div>
+                            <!-- Tooltip -->
+                            <ItemTooltip 
+                                :item="getItemInBackpackSlot(slot)" 
+                                :character-level="store.character.level"
+                                class="hidden group-hover:block"
+                            >
+                                <template #footer>Kliknij by założyć</template>
+                            </ItemTooltip>
                     </div>
                 </div>
             </div>

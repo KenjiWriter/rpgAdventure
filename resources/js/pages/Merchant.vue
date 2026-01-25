@@ -110,6 +110,17 @@ async function buyItem(item: any) {
                         
                         <!-- Stats Preview -->
                         <div class="space-y-1 text-xs mb-4 min-h-[60px]">
+                            <!-- Base Stats -->
+                            <div v-if="item.template.base_damage_min" class="flex justify-between text-amber-400 font-bold">
+                                <span>Wartość Ataku</span>
+                                <span>{{ item.template.base_damage_min }} - {{ item.template.base_damage_max }}</span>
+                            </div>
+                            <div v-if="item.template.base_defense" class="flex justify-between text-amber-400 font-bold">
+                                <span>Obrona</span>
+                                <span>{{ item.template.base_defense }}</span>
+                            </div>
+                            
+                            <!-- Bonuses -->
                             <div v-for="bonus in item.data.bonuses" :key="bonus.type" class="flex justify-between text-slate-300">
                                 <span class="capitalize text-slate-400">{{ bonus.type }}</span>
                                 <span class="font-mono font-bold text-green-400">+{{ bonus.value }}</span>

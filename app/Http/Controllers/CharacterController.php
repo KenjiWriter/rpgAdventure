@@ -29,11 +29,14 @@ class CharacterController extends Controller
             return redirect()->route('home');
         }
 
-        $this->characterService->createCharacter(
+        $character = $this->characterService->createCharacter(
             auth()->user(),
             $validated['name'],
             CharacterClass::from($validated['class'])
         );
+
+        // Force Gold 100 (Prompt Requirement)
+        $character->update(['gold' => 100]);
 
         return redirect()->route('home');
     }

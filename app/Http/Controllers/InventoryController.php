@@ -37,6 +37,9 @@ class InventoryController extends Controller
         // Or strictly 'backpack_%'.
         // Let's assume we return ALL items owned by character that are NOT in equipment slots.
 
+        // Load items with template to ensure base stats key availability
+        $character->load(['items.template']);
+
         $backpackItems = $character->items->filter(function ($item) {
             // Simple check: is it in equipment enum?
             $isEquipped = in_array($item->slot_id, array_column(\App\Enums\ItemSlot::cases(), 'value'));
