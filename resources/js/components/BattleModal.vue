@@ -37,6 +37,7 @@ const showRewards = ref(false);
 // --- Computed ---
 const isOpen = computed(() => store.showBattleModal);
 const battleData = computed(() => store.activeBattle);
+const isVictory = computed(() => battleData.value?.winnerId === store.character?.id);
 
 // --- Watchers ---
 watch(isOpen, (newVal) => {
@@ -275,14 +276,18 @@ function skip() {
                 <div class="w-64 bg-slate-950/90 border border-slate-800 rounded-lg p-4 flex flex-col overflow-hidden">
                     <h3 class="text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider">Combat Log</h3>
                     <div class="flex-1 overflow-y-auto space-y-1 text-xs font-mono scrollbar-hide" ref="logContainer">
-                        <div v-for="(event, i) in battleEvents.slice(0, processedEventIndex)" :key="i" class="text-slate-300 border-b border-slate-800/50 pb-1">
-                             <span :class="event.attacker_id === battleData?.participants.hero.id ? 'text-indigo-400' : 'text-red-400'">
-                                 {{ event.attacker_id === battleData?.participants.hero.id ? 'Hero' : 'Enemy' }}
+                        <div v-for="(event, i) in battleEvents.slice(0, processedEventIndex)" :key="i" class="border-b border-slate-800/50 pb-1">
+                             <span :class="event.attacker_id === battleData?.participants.hero.id ? 'text-green-400' : 'text-red-400'" class="font-bold">
+                                 {{ event.attacker_id === battleData?.participants.hero.id ? 'Hero' : enemyState.name }}
                              </span>
-                             <span v-if="event.type === 'hit'"> hits for <span class="text-white">{{ event.damage }}</span> dmg.</span>
-                             <span v-if="event.type === 'crit'"> crits for <span class="text-yellow-400">{{ event.damage }}</span>!</span>
-                             <span v-if="event.type === 'miss'"> misses.</span>
-                             <span v-if="event.type === 'death'" class="text-red-600 block pt-1">Target died.</span>
+                             <span v-if="event.type === 'hit'" :class="event.attacker_id === battleData?.participants.hero.id ? 'text-green-200' : 'text-red-200'">
+                                 hits for <span class="font-bold">{{ event.damage }}</span>
+                             </span>
+                             <span v-if="event.type === 'crit'" class="text-yellow-400 font-bold">
+                                 CRITS for {{ event.damage }}!
+                             </span>
+                             <span v-if="event.type === 'miss'" class="text-slate-500 italic"> misses.</span>
+                             <span v-if="event.type === 'death'" class="text-red-600 block pt-1 font-bold">Target defeated.</span>
                         </div>
                         <div ref="logEnd"></div>
                     </div>
@@ -290,10 +295,13 @@ function skip() {
             </div>
 
             <!-- Reward Overlay -->
-            <div v-if="showRewards" class="absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center gap-6 animate-fade-in p-8">
-                <h3 class="text-4xl font-bold text-yellow-500 font-serif mb-4">Victory!</h3>
+            <div v-if="showRewards" class="absolute inset-0 z-50 bg-black/95 flex flex-col items-center justify-center gap-6 animate-fade-in p-8"
+                :class="isVictory ? 'bg-black/90' : 'bg-red-950/90'">
                 
-                <div class="grid grid-cols-2 gap-8 text-center w-full max-w-lg">
+                <h3 v-if="isVictory" class="text-5xl font-bold text-yellow-500 font-serif mb-4 drop-shadow-glow">Victory!</h3>
+                <h3 v-else class="text-5xl font-bold text-red-600 font-serif mb-4 drop-shadow-md">Defeat</h3>
+                
+                <div v-if="isVictory" class="grid grid-cols-2 gap-8 text-center w-full max-w-lg">
                     <div class="p-4 bg-slate-800/50 rounded border border-slate-700">
                         <div class="text-sm text-slate-400">Experience</div>
                         <div class="text-3xl font-bold text-indigo-400">+{{ battleData.rewards.exp }}</div>
@@ -303,21 +311,26 @@ function skip() {
                         <div class="text-3xl font-bold text-yellow-400">+{{ battleData.rewards.gold }}</div>
                     </div>
                 </div>
+                <div v-else class="text-slate-400 text-lg">
+                    You have fallen in battle...<br>
+                    <span class="text-sm text-slate-500">No rewards earned.</span>
+                </div>
 
                 <!-- Loot -->
-                <div v-if="battleData.rewards.items.length" class="flex gap-4 mt-4">
+                <div v-if="isVictory && battleData.rewards.items.length" class="flex gap-4 mt-4">
                     <div v-for="item in battleData.rewards.items" :key="item.id" 
                          class="w-16 h-16 bg-slate-800 border-2 border-green-500 rounded flex items-center justify-center relative group cursor-help">
                          <span class="text-2xl">⚔️</span>
                          <!-- Tooltip -->
                          <div class="absolute bottom-full mb-2 hidden group-hover:block w-48 bg-black border border-slate-600 p-2 text-xs rounded z-50">
-                            {{ item.item_template_id }} <!-- Needs name from template, need to persist name in rewards or use generic -->
+                            New Item!
                          </div>
                     </div>
                 </div>
 
-                <button @click="close" class="mt-8 px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg shadow-lg border-t border-indigo-400">
-                    Collect & Close
+                <button @click="close" class="mt-8 px-8 py-3 font-bold rounded-lg shadow-lg border-t"
+                    :class="isVictory ? 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-400' : 'bg-slate-700 hover:bg-slate-600 text-slate-300 border-slate-600'">
+                    {{ isVictory ? 'Collect & Close' : 'Close' }}
                 </button>
             </div>
             

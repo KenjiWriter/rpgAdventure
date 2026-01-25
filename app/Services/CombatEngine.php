@@ -93,9 +93,9 @@ class CombatEngine
         // 1. Hit Chance
         // Formula: Base 90% + (Acc - Eva)%?
         // If Acc >> Eva -> 100%. If Acc << Eva -> Low.
-        // Simple: 85 + (Acc - Eva). Min 20, Max 100.
+        // Simple: 85 + (Acc - Eva). Min 60, Max 100.
         $hitChance = 85 + ($attacker->accuracy - $defender->evasion);
-        $hitChance = max(20, min(100, $hitChance));
+        $hitChance = max(60, min(100, $hitChance));
 
         if (mt_rand(1, 100) > $hitChance) {
             return ['type' => 'miss', 'damage' => 0];

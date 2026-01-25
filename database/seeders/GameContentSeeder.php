@@ -36,9 +36,9 @@ class GameContentSeeder extends Seeder
             'map_id' => $field->id,
             'name' => 'Rabid Dog',
         ], [
-            'hp' => 50,
-            'min_dmg' => 3,
-            'max_dmg' => 6,
+            'hp' => 30, // Was 50
+            'min_dmg' => 1,
+            'max_dmg' => 3, // Was 3-6
             'speed' => 10,
             'element' => 'earth',
             'base_gold' => 5,
@@ -51,9 +51,9 @@ class GameContentSeeder extends Seeder
             'map_id' => $forest->id,
             'name' => 'Shadow Wolf',
         ], [
-            'hp' => 120,
-            'min_dmg' => 8,
-            'max_dmg' => 12,
+            'hp' => 80, // Was 120
+            'min_dmg' => 5,
+            'max_dmg' => 8, // Was 8-12
             'speed' => 12,
             'element' => 'wind',
             'base_gold' => 15,
@@ -66,9 +66,9 @@ class GameContentSeeder extends Seeder
             'map_id' => $mine->id,
             'name' => 'Cave Troll',
         ], [
-            'hp' => 300,
-            'min_dmg' => 20,
-            'max_dmg' => 30,
+            'hp' => 200, // Was 300
+            'min_dmg' => 15,
+            'max_dmg' => 25, // Was 20-30
             'speed' => 5,
             'element' => 'earth',
             'base_gold' => 40,
