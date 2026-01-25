@@ -120,10 +120,48 @@ class MissionService
                     $template = \App\Models\ItemTemplate::inRandomOrder()->first();
                     if ($template) {
                         $item = $this->itemGenService->generateInstance($template, $mission->character, ItemRarity::COMMON);
+
+                        // Assign Slot
+                        $occupied = $mission->character->items()->pluck('slot_id')->toArray();
+                        $freeSlot = null;
+                        $maxSlots = $mission->character->inventory_slots ?? 30;
+                        for ($i = 1; $i <= $maxSlots; $i++) {
+                            if (!in_array("backpack_$i", $occupied)) {
+                                $freeSlot = "backpack_$i";
+                                break;
+                            }
+                        }
+
+                        if ($freeSlot) {
+                            $item->update(['slot_id' => $freeSlot]);
+                        } else {
+                            // Inventory Full - Item Lost or handle logic?
+                            // For this MVP, we might just let it be null (invisible) but log it?
+                            // Or simpler: Just don't assign slot, user has to organize?
+                            // But prompt says "Ensure items are visible".
+                            // If full, we can't make it visible in grid.
+                            // We'll leave it as is if full.
+                        }
+
                         $rewards['items'][] = $item;
 
-                        // Log Loot
-                        $this->charService->logActivity($mission->character, 'loot', "Found {$item->name}!", ['item_id' => $item->id]);
+                        // Log Loot with Name and Stats Snapshot
+                        $itemName = $item->template->name ?? 'Unknown Item';
+                        $statsSnapshot = [
+                            'rarity' => $item->template->rarity->value ?? 'common',
+                            'bonuses' => $item->bonuses
+                        ];
+
+                        $this->charService->logActivity(
+                            $mission->character,
+                            'loot',
+                            "Found {$itemName}!",
+                            [
+                                'item_id' => $item->id,
+                                'item_name' => $itemName,
+                                'stats' => $statsSnapshot
+                            ]
+                        );
                     }
                 }
             } else {

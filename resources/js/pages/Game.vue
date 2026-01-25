@@ -46,7 +46,7 @@ onMounted(() => {
                         <h3 class="font-bold text-white mb-4 flex items-center gap-2">
                             Recent Activity
                         </h3>
-                        <div class="space-y-4 text-sm text-slate-400 relative z-10">
+                        <div class="space-y-4 text-sm text-slate-400 relative z-10 max-h-[250px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900 border-b border-slate-800/50 pb-2">
                             
                         <div class="space-y-4 text-sm text-slate-400 relative z-10">
                             
@@ -64,8 +64,30 @@ onMounted(() => {
                                     <Sparkles v-else-if="log.type === 'loot'" class="w-4 h-4 text-amber-400" />
                                     <div v-else class="w-2 h-2 rounded-full bg-slate-500 mt-1"></div>
                                 </div>
-                                <div class="flex-1">
-                                    <p class="text-slate-200">{{ log.message }}</p>
+                                <div class="flex-1 relative group/log">
+                                    <p class="text-slate-200">
+                                        <span v-if="log.type === 'loot' && log.metadata?.item_name" class="cursor-help text-amber-400 font-bold border-b border-amber-400/30 border-dashed">
+                                            Found {{ log.metadata.item_name }}!
+                                            
+                                            <!-- Tooltip -->
+                                            <div class="absolute bottom-full left-0 mb-2 w-48 bg-slate-900 border border-amber-500/50 p-2 rounded shadow-xl z-50 hidden group-hover/log:block pointer-events-none">
+                                                <div class="text-amber-400 font-bold mb-1">{{ log.metadata.item_name }}</div>
+                                                 <div v-if="log.metadata.stats?.rarity" class="text-[10px] uppercase tracking-wider mb-1" :class="{
+                                                    'text-slate-300': log.metadata.stats.rarity === 'common',
+                                                    'text-green-400': log.metadata.stats.rarity === 'uncommon',
+                                                    'text-blue-400': log.metadata.stats.rarity === 'rare',
+                                                    'text-purple-400': log.metadata.stats.rarity === 'epic',
+                                                    'text-amber-400': log.metadata.stats.rarity === 'legendary',
+                                                 }">{{ log.metadata.stats.rarity }}</div>
+                                                <div class="border-t border-slate-800 pt-1 mt-1">
+                                                    <div v-for="bonus in log.metadata.stats?.bonuses" :key="bonus.type" class="text-[10px] text-green-400">
+                                                        +{{ bonus.value }} {{ bonus.type }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </span>
+                                        <span v-else>{{ log.message }}</span>
+                                    </p>
                                     <span class="text-xs text-slate-500">{{ new Date(log.created_at).toLocaleString() }}</span>
                                 </div>
                             </div>

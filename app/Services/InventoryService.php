@@ -92,7 +92,14 @@ class InventoryService
                 // Context is mostly single player + warehouse.
 
                 // If it's the same character, just recalc.
+                // If it's the same character, just recalc.
                 app(CharacterService::class)->calculateTotalStats($targetOwner);
+
+                // Log Activity if equipping
+                if ($this->isEquipmentSlot($targetSlot)) {
+                    $message = "Equipped {$item->template->name}";
+                    app(CharacterService::class)->logActivity($targetOwner, 'system', $message, ['item_id' => $item->id]);
+                }
             }
 
             // Note: If we swapped, we might need to recalc for the source owner too if it was a character.

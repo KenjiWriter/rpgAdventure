@@ -239,6 +239,12 @@ function close() {
 function skip() {
     playbackSpeed.value = 1000; // Hyper speed
 }
+
+function getHpPercentage(current: number, max: number) {
+    if (max <= 0) return 100; // Fallback to full if invalid
+    const pct = (current / max) * 100;
+    return Math.max(0, Math.min(100, pct));
+}
 </script>
 
 <template>
@@ -276,7 +282,7 @@ function skip() {
                         <!-- HP Bar -->
                         <div class="w-32 h-4 bg-slate-900 rounded-full border border-slate-700 overflow-hidden relative shadow-inner">
                             <div class="h-full bg-gradient-to-r from-red-600 to-red-500 transition-all duration-300" 
-                                 :style="{ width: (heroState.hp / heroState.maxHp * 100) + '%' }"></div>
+                                 :style="{ width: getHpPercentage(heroState.hp, heroState.maxHp) + '%' }"></div>
                             <span class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white shadow-black drop-shadow-md">
                                 {{ heroState.hp }} / {{ heroState.maxHp }}
                             </span>
@@ -300,7 +306,7 @@ function skip() {
                         
                         <div class="w-32 h-4 bg-slate-900 rounded-full border border-slate-700 overflow-hidden relative shadow-inner order-2">
                              <div class="h-full bg-gradient-to-r from-red-600 to-red-500 transition-all duration-300" 
-                                  :style="{ width: (enemyState.hp / enemyState.maxHp * 100) + '%' }"></div>
+                                  :style="{ width: getHpPercentage(enemyState.hp, enemyState.maxHp) + '%' }"></div>
                              <span class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white shadow-black drop-shadow-md">
                                 {{ enemyState.hp }} / {{ enemyState.maxHp }}
                              </span>
