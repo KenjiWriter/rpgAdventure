@@ -17,15 +17,25 @@ class GameContentSeeder extends Seeder
     public function run(): void
     {
         // 1. Core Maps
-        $field = Map::create(['name' => 'Whispering Fields', 'min_level' => 1]);
-        $forest = Map::create(['name' => 'Dark Forest', 'min_level' => 5]);
-        $mine = Map::create(['name' => 'Abandoned Mine', 'min_level' => 10]);
+        $field = Map::updateOrCreate(
+            ['name' => 'Whispering Fields'],
+            ['min_level' => 1]
+        );
+        $forest = Map::updateOrCreate(
+            ['name' => 'Dark Forest'],
+            ['min_level' => 5]
+        );
+        $mine = Map::updateOrCreate(
+            ['name' => 'Abandoned Mine'],
+            ['min_level' => 10]
+        );
 
         // 2. Monsters
         // Field
-        Monster::create([
+        Monster::updateOrCreate([
             'map_id' => $field->id,
             'name' => 'Rabid Dog',
+        ], [
             'hp' => 50,
             'min_dmg' => 3,
             'max_dmg' => 6,
@@ -37,9 +47,10 @@ class GameContentSeeder extends Seeder
         ]);
 
         // Forest
-        Monster::create([
+        Monster::updateOrCreate([
             'map_id' => $forest->id,
             'name' => 'Shadow Wolf',
+        ], [
             'hp' => 120,
             'min_dmg' => 8,
             'max_dmg' => 12,
@@ -51,9 +62,10 @@ class GameContentSeeder extends Seeder
         ]);
 
         // Mine
-        Monster::create([
+        Monster::updateOrCreate([
             'map_id' => $mine->id,
             'name' => 'Cave Troll',
+        ], [
             'hp' => 300,
             'min_dmg' => 20,
             'max_dmg' => 30,
@@ -66,16 +78,18 @@ class GameContentSeeder extends Seeder
 
         // 3. Starter Items
         // Warrior
-        ItemTemplate::create([
+        ItemTemplate::updateOrCreate([
             'name' => 'Rusty Sword',
+        ], [
             'type' => ItemType::WEAPON,
             'base_stats' => ['min_dmg' => 2, 'max_dmg' => 4],
             'min_level' => 1,
             'class_restriction' => CharacterClass::WARRIOR->value,
         ]);
 
-        ItemTemplate::create([
+        ItemTemplate::updateOrCreate([
             'name' => 'Worn Tunic',
+        ], [
             'type' => ItemType::ARMOR,
             'base_stats' => ['vitality' => 1, 'defense' => 2],
             'min_level' => 1,
@@ -83,8 +97,9 @@ class GameContentSeeder extends Seeder
         ]);
 
         // Assassin
-        ItemTemplate::create([
+        ItemTemplate::updateOrCreate([
             'name' => 'Chipped Dagger',
+        ], [
             'type' => ItemType::WEAPON,
             'base_stats' => ['min_dmg' => 1, 'max_dmg' => 3, 'speed_bonus' => 5],
             'min_level' => 1,
@@ -92,8 +107,9 @@ class GameContentSeeder extends Seeder
         ]);
 
         // Mage
-        ItemTemplate::create([
+        ItemTemplate::updateOrCreate([
             'name' => 'Bent Staff',
+        ], [
             'type' => ItemType::WEAPON,
             'base_stats' => ['intelligence' => 2, 'min_dmg' => 1, 'max_dmg' => 3],
             'min_level' => 1,
@@ -101,8 +117,9 @@ class GameContentSeeder extends Seeder
         ]);
 
         // Materials
-        ItemTemplate::create([
+        ItemTemplate::updateOrCreate([
             'name' => 'Upgrade Stone',
+        ], [
             'type' => ItemType::MATERIAL,
             'base_stats' => [],
             'min_level' => 1,

@@ -30,6 +30,18 @@ Route::middleware(['auth', 'verified', \App\Http\Middleware\EnsureCharacterSelec
     })->name('dashboard');
 });
 
+// Public/Auth routes that don't require an active character
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/create-character', function () {
+        if (auth()->user()->characters()->exists()) {
+            return redirect()->route('home');
+        }
+        return Inertia::render('CreateCharacter');
+    })->name('character.create');
+
+    Route::post('/character', [\App\Http\Controllers\CharacterController::class, 'store'])
+        ->name('character.store');
+});
 Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
     Route::get('/character/{id}/logs', [\App\Http\Controllers\CharacterController::class, 'logs']);
     Route::get('/quests', [\App\Http\Controllers\QuestController::class, 'index']);
