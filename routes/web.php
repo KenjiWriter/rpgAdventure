@@ -36,4 +36,16 @@ Route::get('dashboard', function () {
     return redirect()->route('home');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+Route::middleware(['auth', 'verified'])->prefix('api')->group(function () {
+    Route::get('/character/{id}', [\App\Http\Controllers\CharacterController::class, 'show']);
+    Route::get('/inventory', [\App\Http\Controllers\InventoryController::class, 'index']);
+    Route::post('/inventory/move', [\App\Http\Controllers\InventoryController::class, 'move']);
+
+    Route::post('/forge/upgrade', [\App\Http\Controllers\ForgeController::class, 'upgrade']);
+
+    Route::post('/mission/start', [\App\Http\Controllers\MissionController::class, 'start']);
+    Route::post('/mission/claim', [\App\Http\Controllers\MissionController::class, 'claim']);
+    Route::get('/mission/active', [\App\Http\Controllers\MissionController::class, 'active']);
+});
+
 require __DIR__ . '/settings.php';

@@ -3,6 +3,7 @@ import { createPinia } from 'pinia';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
+import './bootstrap';
 import '../css/app.css';
 import { initializeTheme } from './composables/useAppearance';
 

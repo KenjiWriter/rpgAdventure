@@ -41,6 +41,10 @@ export const usePlayerStore = defineStore('player', {
 
     actions: {
         async fetchPlayerData(characterId: string) {
+            if (!characterId) {
+                console.warn('fetchPlayerData called with no ID');
+                return;
+            }
             try {
                 // Parallel fetch
                 const [charRes, invRes] = await Promise.all([
