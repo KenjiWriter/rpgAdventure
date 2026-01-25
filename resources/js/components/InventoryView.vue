@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { usePlayerStore } from '../stores/usePlayerStore';
 import { Sword, Shield, Shirt, Footprints, Gamepad2 } from 'lucide-vue-next';
 
 const store = usePlayerStore();
 const backpack = computed(() => store.backpack); // Array of items
 const equipment = computed(() => store.equipment); // Array of equipped items for finding specific slots
+
 
 // Helper to check if a slot has an item
 const getEquippedItem = (slotId: string) => {
@@ -31,46 +32,86 @@ const equipmentSlots = [
 const backpackSlots = Array.from({ length: 42 }, (_, i) => i + 1);
 
 // Move Logic
-const handleItemClick = (item: any, source: 'backpack' | 'equipment') => {
-    if (!item) return;
+// Context Menu State
+const contextMenu = ref({
+    show: false,
+    x: 0,
+    y: 0,
+    item: null as any
+});
 
-    // Simple auto-equip / unequip logic
-    let targetSlot = '';
-    
+const handleRightClick = (event: MouseEvent, item: any) => {
+    if (!item || store.activeMission) return;
+    contextMenu.value = {
+        show: true,
+        x: event.clientX,
+        y: event.clientY,
+        item
+    };
+};
+
+const closeContextMenu = () => {
+    contextMenu.value.show = false;
+};
+
+// Rarity Colors
+const getRarityColor = (rarity: string) => {
+    switch (rarity) {
+        case 'common': return 'bg-slate-800 border-slate-600 text-slate-300';
+        case 'uncommon': return 'bg-green-900/30 border-green-600 text-green-300';
+        case 'rare': return 'bg-blue-900/30 border-blue-600 text-blue-300';
+        case 'epic': return 'bg-purple-900/30 border-purple-600 text-purple-300 text-shadow-purple';
+        case 'legendary': return 'bg-amber-900/30 border-amber-600 text-amber-300 text-shadow-amber';
+        default: return 'bg-slate-800 border-slate-600 text-slate-300';
+    }
+};
+
+const getRarityTextColor = (rarity: string) => {
+    switch (rarity) {
+        case 'common': return 'text-slate-300';
+        case 'uncommon': return 'text-green-400';
+        case 'rare': return 'text-blue-400';
+        case 'epic': return 'text-purple-400';
+        case 'legendary': return 'text-amber-400';
+        default: return 'text-slate-300';
+    }
+};
+
+const handleItemClick = async (item: any, source: 'backpack' | 'equipment') => {
+    if (!item) return;
+    contextMenu.value.show = false; // Close if open
+
     if (source === 'backpack') {
-        // Needs mapping from Item Type or logic to determine valid slot.
-        // For simplicity, if it's weapon -> main_hand (unless occupied?), armor -> chest/boots etc based on template type?
-        // Or we just try to move to a default slot based on backend logic?
-        // Backend move requires a specific slot.
-        // Let's deduce slot from valid mappings in item.template? Ideally backend sends that info.
-        // Or we guess.
-        // "Rusty Sword" -> main_hand.
-        // "Worn Tunic" -> chest.
-        // We really need 'equip_slot' on item template to know where it goes by default.
-        // Assuming user knows or we hardcode for now based on name/type for prototype.
+        let targetSlot = '';
         
+        // Smart Equip Logic
         if (item.template.type === 'weapon') targetSlot = 'main_hand';
         if (item.template.type === 'armor') {
-             // Heuristic based on name?
-             if (item.template.name.includes('Tunic') || item.template.name.includes('Armor')) targetSlot = 'chest';
-             if (item.template.name.includes('Boots')) targetSlot = 'boots';
+             const name = item.template.name.toLowerCase();
+             if (name.includes('armor') || name.includes('tunic') || name.includes('chest')) targetSlot = 'chest';
+             if (name.includes('boots') || name.includes('greaves')) targetSlot = 'boots';
+             if (name.includes('gloves') || name.includes('gauntlets')) targetSlot = 'gloves';
+             if (name.includes('helm') || name.includes('cap')) targetSlot = 'head';
+             if (name.includes('legs') || name.includes('pants')) targetSlot = 'legs';
+             if (name.includes('shield')) targetSlot = 'off_hand';
+             if (name.includes('amulet') || name.includes('neck')) targetSlot = 'amulet';
+             if (name.includes('ring')) targetSlot = 'ring';
         }
         
-        if (!targetSlot) return alert("Cannot auto-equip this item type yet");
+        if (!targetSlot) {
+            // Fallback: If stats suggest defense, maybe chest?
+            return alert("Cannot auto-equip: Unknown slot for " + item.template.name);
+        }
         
-        store.moveItem(item.id, 'character', targetSlot);
+        await store.moveItem(item.id, 'character', targetSlot);
     } else {
-        // Unequip to first empty backpack slot?
-        // For now, just try 'backpack_1'.
-        // Optimally, find first empty slot in backpack array.
-        // But store.backpack might not maintain "slots" array logic, just list of items.
-        // We need to find `backpack_N` that is not taken.
+        // Unequip to first empty slot
         const takenSlots = backpack.value.map((i: any) => i.slot_id);
         let freeSlot = 1;
         while (takenSlots.includes(`backpack_${freeSlot}`)) {
             freeSlot++;
         }
-        store.moveItem(item.id, 'character', `backpack_${freeSlot}`);
+        await store.moveItem(item.id, 'character', `backpack_${freeSlot}`);
     }
 };
 
@@ -152,7 +193,7 @@ const getItemInBackpackSlot = (slotIndex: number) => {
         </div>
 
         <!-- Backpack Panel -->
-        <div class="relative lg:col-span-2 bg-slate-900/80 p-6 rounded-xl border border-slate-800 backdrop-blur-sm">
+        <div class="relative lg:col-span-2 bg-slate-900/80 p-6 rounded-xl border border-slate-800 backdrop-blur-sm" @click="closeContextMenu">
             
             <!-- Lock Overlay -->
             <div v-if="store.activeMission" class="absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-[2px] flex flex-col items-center justify-center border border-red-900/30 rounded-xl">
@@ -167,24 +208,29 @@ const getItemInBackpackSlot = (slotIndex: number) => {
 
             <h2 class="text-xl font-bold text-zinc-100 mb-6 border-b border-slate-700 pb-2">Backpack</h2>
             
-            <div class="grid grid-cols-7 gap-2">
+            <div class="grid grid-cols-7 gap-2 relative">
                 <div 
                     v-for="slot in backpackSlots" 
                     :key="slot"
                     class="aspect-square bg-slate-950 border border-slate-800 rounded shadow-inner hover:bg-slate-800 transition-colors relative group"
+                    @contextmenu.prevent="handleRightClick($event, getItemInBackpackSlot(slot))"
                 >
                     <div 
                         v-if="getItemInBackpackSlot(slot)"
                         class="w-full h-full p-1 cursor-pointer"
                         @click="!store.activeMission && handleItemClick(getItemInBackpackSlot(slot), 'backpack')"
                     >
-                         <div class="w-full h-full bg-slate-800 rounded border border-slate-700 flex items-center justify-center text-[8px] text-center leading-tight overflow-hidden break-words p-0.5">
+                        <!-- Item Rendering with Rarity Colors -->
+                         <div class="w-full h-full rounded border flex items-center justify-center text-[10px] text-center leading-tight overflow-hidden break-words p-0.5 transition-colors"
+                            :class="getRarityColor(getItemInBackpackSlot(slot)?.template?.rarity)">
                             {{ getItemInBackpackSlot(slot)?.template?.name }}
                         </div>
                         
                          <!-- Tooltip -->
-                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-slate-900 border border-slate-600 p-2 rounded shadow-xl z-50 hidden group-hover:block pointer-events-none">
-                            <div class="text-white font-bold mb-1">{{ getItemInBackpackSlot(slot)?.template?.name }}</div>
+                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-slate-900 border border-slate-600 p-2 rounded shadow-xl z-30 hidden group-hover:block pointer-events-none">
+                            <div class="font-bold mb-1" :class="getRarityTextColor(getItemInBackpackSlot(slot)?.template?.rarity)">
+                                {{ getItemInBackpackSlot(slot)?.template?.name }}
+                            </div>
                             <div class="text-[10px] text-slate-400">{{ getItemInBackpackSlot(slot)?.template?.type }}</div>
                             <div class="mt-1 border-t border-slate-800 pt-1">
                                     <div v-for="(val, key) in getItemInBackpackSlot(slot)?.template?.base_stats" class="text-[10px] text-slate-300">
@@ -194,11 +240,24 @@ const getItemInBackpackSlot = (slotIndex: number) => {
                                         +{{ bonus.value }} {{ bonus.type }}
                                     </div>
                             </div>
+                            <div class="text-[10px] text-slate-500 mt-1 italic">Left-click to Equip</div>
                         </div>
                     </div>
                 </div>
             </div>
             
+            <!-- Context Menu -->
+            <div v-if="contextMenu.show" 
+                 class="fixed z-50 bg-slate-800 border border-slate-600 rounded shadow-2xl py-1 text-sm min-w-[120px]"
+                 :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }">
+                 <button class="w-full text-left px-4 py-2 hover:bg-slate-700 text-white flex items-center gap-2" @click="handleItemClick(contextMenu.item, 'backpack')">
+                    ⚔️ Equip
+                 </button>
+                 <button class="w-full text-left px-4 py-2 hover:bg-slate-700 text-red-400 flex items-center gap-2 cursor-not-allowed opacity-50">
+                    🗑️ Trash (Soon)
+                 </button>
+            </div>
+
             <div class="mt-4 flex justify-between items-center text-xs text-slate-500">
                 <span>{{ store.backpackSlotsUsed }} / {{ store.backpackSlotsTotal }} Slots Used</span>
                 <button class="text-indigo-400 hover:text-indigo-300">Sort Items</button>

@@ -140,6 +140,7 @@ export const usePlayerStore = defineStore('player', {
 
                 const response = await axios.post('/api/mission/claim', { mission_id: missionId });
                 const rewards = response.data.rewards;
+                const monsterData = response.data.monster;
 
                 if (rewards.type === 'combat_result' && rewards.combat_log) {
                     this.activeBattle = {
@@ -148,8 +149,8 @@ export const usePlayerStore = defineStore('player', {
                         winnerId: rewards.won ? this.character.id : null,
                         participants: {
                             hero: this.character,
-                            // Pass monster details for VS screen
-                            monster: monster || { name: 'Unknown', level: '?', max_hp: 100 }
+                            // Pass use valid monster data from response
+                            monster: monsterData ? { ...monsterData, max_hp: monsterData.hp } : { name: 'Unknown', level: '?', max_hp: 100 }
                         },
                         rewards: {
                             gold: rewards.gold,

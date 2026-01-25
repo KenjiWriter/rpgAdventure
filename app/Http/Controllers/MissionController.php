@@ -60,7 +60,8 @@ class MissionController extends Controller
             $rewards = $this->missionService->completeMission($mission);
             return response()->json([
                 'message' => 'Mission completed',
-                'rewards' => $rewards
+                'rewards' => $rewards,
+                'monster' => $mission->monster, // Pass monster source of truth
             ]);
         } catch (\Exception $e) {
             return response()->json(['message' => $e->getMessage()], 400);

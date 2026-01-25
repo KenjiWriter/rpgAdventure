@@ -67,28 +67,14 @@ function initBattle() {
     };
 
     // Init Enemy
-    // We might need to estimate Enemy Max HP from log if not provided.
-    // Or just set arbitrary for visuals if missing.
-    // Let's look for the first event targeting enemy and see hp before damage?
-    // Or just use 100% relative bar.
+    const monster = battleData.value.participants.monster;
     enemyState.value = {
-        hp: 100,
-        maxHp: 100, // Placeholder
-        name: 'Unknown Beast',
+        hp: monster?.max_hp || 100,
+        maxHp: monster?.max_hp || 100,
+        name: monster?.name || 'Monster',
         shaking: false
     };
 
-    // Look for first monster interaction to get name/hp?
-    const firstEnemyTarget = battleData.value.log.find((e: any) => e.defender_id !== hero.id);
-    if (firstEnemyTarget) {
-         // This assumes we can deduce data. 
-         // Better: Update store to accept 'monster' object in participants.
-         // For now, we will live with reactive updates from log.
-         // If `target_hp` is in log, we can assume that is "current".
-         // Let's assume the first event targeting enemy reveals its "current" HP + damage taken = Max HP roughly?
-         // This is imperfect.
-    }
-    
     // Sort log just in case
     battleEvents.value = [...battleData.value.log].sort((a, b) => a.tick - b.tick);
     
@@ -100,11 +86,10 @@ function initBattle() {
     setTimeout(() => {
         showVs.value = false;
         requestAnimationFrame(gameLoop);
-    }, 2000); // 2 seconds splash
+    }, 2000); 
 }
 
 let lastFrameTime = 0;
-const TIME_SCALAR = 1; // Base speed
 
 function gameLoop(timestamp: number) {
     if (!isPlaying.value) return;
@@ -127,44 +112,86 @@ function gameLoop(timestamp: number) {
 
     // Check End
     if (processedEventIndex.value >= battleEvents.value.length) {
-        // Wait a sec then show rewards
         setTimeout(() => {
             endBattle();
         }, 1000);
         return;
     }
 
-    // Keep loop running if not ended
     if (processedEventIndex.value < battleEvents.value.length) {
         requestAnimationFrame(gameLoop);
     }
 }
 
+function getAtbProgress(actorId: number | 'enemy') {
+    // Determine the ID to look for
+    const specificId = actorId === 'enemy' ? null : actorId; // Hero ID passed, enemy is finding diff
+    
+    // Find previous action tick for this actor
+    // This is expensive to do every frame if list is huge, but list is small (<50 events).
+    // Better: Cache next action tick.
+    
+    // Simple approach:
+    // look backward from current event index to find LAST action tick.
+    // look forward to find NEXT action tick.
+    // progress = (currentTick - last) / (next - last)
+    
+    let lastTick = 0;
+    let nextTick = 100; // arbitrary future if none
+
+    const heroId = battleData.value?.participants.hero.id;
+    const isEnemy = actorId === 'enemy';
+
+    // Find Next
+    const nextAction = battleEvents.value.slice(processedEventIndex.value).find(e => {
+        if (isEnemy) return e.attacker_id !== heroId;
+        return e.attacker_id === heroId;
+    });
+
+    if (nextAction) {
+        nextTick = nextAction.tick;
+    } else {
+        // No more actions, full bar?
+        return 100;
+    }
+
+    // Find Last
+    // We search from 0 to processedIndex
+    const prevActions = battleEvents.value.slice(0, processedEventIndex.value).filter(e => {
+        if (isEnemy) return e.attacker_id !== heroId;
+        return e.attacker_id === heroId;
+    });
+    
+    if (prevActions.length > 0) {
+        lastTick = prevActions[prevActions.length - 1].tick;
+    }
+
+    const totalDuration = nextTick - lastTick;
+    if (totalDuration <= 0) return 0;
+
+    const elapsed = currentTick.value - lastTick;
+    return Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
+}
+
 function applyEvent(event: any) {
-    // 1. FCT
     if (event.type === 'hit' || event.type === 'crit' || event.type === 'miss') {
         spawnFCT(event);
     }
 
-    // 2. Shake & HP Update
     const isHeroTarget = event.defender_id === battleData.value?.participants.hero.id;
     
     if (isHeroTarget) {
-        heroState.value.hp = event.target_hp; // Update to exact server value
+        heroState.value.hp = event.target_hp; 
         triggerShake(heroState);
     } else {
         enemyState.value.hp = event.target_hp;
-        // If we didn't know max HP, we might adjust bar? 
-        // Let's just track raw HP.
         triggerShake(enemyState);
     }
 
-    // 3. Death
     if (event.type === 'death') {
         // Animation?
     }
 
-    // Scroll Log
     setTimeout(() => {
         logEnd.value?.scrollIntoView({ behavior: 'smooth' });
     }, 10);
@@ -173,21 +200,19 @@ function applyEvent(event: any) {
 function spawnFCT(event: any) {
     const isHeroTarget = event.defender_id === battleData.value?.participants.hero.id;
     const text = event.type === 'miss' ? 'Miss' : event.damage.toString();
-    const type = event.type; // hit, crit, miss
+    const type = event.type; 
     
-    // ID for component key
     const id = Date.now() + Math.random();
     
     floatingTexts.value.push({
         id,
         text,
         type,
-        side: isHeroTarget ? 'left' : 'right', // side of the TARGET
-        x: isHeroTarget ? 30 : 70, // percent
-        y: 40 // percent
+        side: isHeroTarget ? 'left' : 'right',
+        x: isHeroTarget ? 30 : 70, 
+        y: 40 
     });
 
-    // Cleanup after animation
     setTimeout(() => {
         floatingTexts.value = floatingTexts.value.filter(t => t.id !== id);
     }, 1000);
@@ -212,55 +237,86 @@ function close() {
 }
 
 function skip() {
-    playbackSpeed.value = 100; // Hyper speed
+    playbackSpeed.value = 1000; // Hyper speed
 }
 </script>
 
 <template>
-    <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-        <div class="relative w-full max-w-4xl p-6 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden min-h-[500px] flex flex-col">
+    <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="relative w-full max-w-5xl h-[85vh] bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden flex flex-col">
             
             <!-- Header -->
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-white font-serif">Combat Log</h2>
+            <div class="flex justify-between items-center p-4 border-b border-slate-700 bg-slate-900/50">
+                <h2 class="text-2xl font-bold text-white font-serif flex items-center gap-2">
+                    <span>⚔️</span> Combat Log
+                </h2>
                 <div class="space-x-2">
-                    <button v-if="!showRewards" @click="playbackSpeed = playbackSpeed === 1 ? 2 : 1" class="px-3 py-1 bg-slate-800 rounded text-xs hover:bg-slate-700 font-mono">
+                    <button v-if="!showRewards" @click="playbackSpeed = playbackSpeed === 1 ? 2 : 1" class="px-3 py-1 bg-slate-800 rounded text-xs hover:bg-slate-700 font-mono transition-colors border border-slate-700 text-slate-300">
                         {{ playbackSpeed }}x Speed
                     </button>
-                    <button v-if="!showRewards" @click="skip" class="px-3 py-1 bg-indigo-600 rounded text-xs hover:bg-indigo-500 font-bold">
+                    <button v-if="!showRewards" @click="skip" class="px-3 py-1 bg-indigo-600 rounded text-xs hover:bg-indigo-500 font-bold transition-colors shadow-lg shadow-indigo-500/20 text-white">
                         Skip
                     </button>
                 </div>
             </div>
 
             <!-- Battlefield -->
-            <div class="relative flex-1 flex gap-4 min-h-0">
+            <div class="relative flex-1 flex gap-0 min-h-0">
                 <!-- Visual Field -->
-                <div class="flex-1 relative flex justify-between items-center px-12 bg-[url('/assets/bg-combat.png')] bg-cover bg-center rounded-lg border border-slate-800">
-                    
-                    <!-- Hero -->
+                <div class="flex-[2] relative flex flex-col justify-center items-center bg-[url('/assets/bg-combat.png')] bg-cover bg-center border-r border-slate-800">
+                    <!-- Overlay for text clarity -->
+                    <div class="absolute inset-0 bg-slate-950/30"></div>
+
+                    <div class="relative z-10 flex justify-around w-full items-center px-12">
                     <div class="relative flex flex-col items-center gap-2 transition-transform" :class="{ 'animate-shake': heroState.shaking }">
-                        <div class="w-24 h-24 rounded-full border-4 border-indigo-500 bg-slate-800 flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(99,102,241,0.5)]">
+                        <div class="w-24 h-24 rounded-full border-4 border-indigo-500 bg-slate-800 flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(99,102,241,0.5)] z-10">
                             <span class="text-4xl">🧘</span>
                         </div>
-                        <div class="w-32 h-4 bg-slate-900 rounded-full border border-slate-700 overflow-hidden relative">
-                            <div class="h-full bg-red-600 transition-all duration-300" :style="{ width: (heroState.hp / heroState.maxHp * 100) + '%' }"></div>
+                        
+                        <!-- HP Bar -->
+                        <div class="w-32 h-4 bg-slate-900 rounded-full border border-slate-700 overflow-hidden relative shadow-inner">
+                            <div class="h-full bg-gradient-to-r from-red-600 to-red-500 transition-all duration-300" 
+                                 :style="{ width: (heroState.hp / heroState.maxHp * 100) + '%' }"></div>
+                            <span class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white shadow-black drop-shadow-md">
+                                {{ heroState.hp }} / {{ heroState.maxHp }}
+                            </span>
                         </div>
-                        <span class="text-white font-bold">{{ heroState.hp }} / {{ heroState.maxHp }}</span>
+
+                         <!-- ATB Bar -->
+                        <div class="w-24 h-1.5 bg-slate-900 rounded-full border border-slate-700 overflow-hidden relative mt-1">
+                            <div class="h-full bg-yellow-400 shadow-[0_0_5px_rgba(250,204,21,0.8)] transition-all duration-100 ease-linear"
+                                 :style="{ width: getAtbProgress(battleData?.participants.hero.id) + '%' }"></div>
+                        </div>
                     </div>
 
                     <!-- VS -->
-                    <div class="text-4xl font-black text-white/20 italic">VS</div>
+                    <div class="flex flex-col items-center">
+                         <div class="text-4xl font-black text-white/20 italic">VS</div>
+                    </div>
 
                     <!-- Enemy -->
                     <div class="relative flex flex-col items-center gap-2 transition-transform" :class="{ 'animate-shake': enemyState.shaking }">
-                        <div class="w-32 h-4 bg-slate-900 rounded-full border border-slate-700 overflow-hidden relative">
-                             <!-- Hacky max HP logic: Set width relative to arbitrary max if 100 -->
-                            <div class="h-full bg-red-600 transition-all duration-300" :style="{ width: Math.min(100, Math.max(0, enemyState.hp)) + '%' }"></div>
+                         <!-- ATB Bar (Top for enemy or bottom? consistency -> bottom) -->
+                        
+                        <div class="w-32 h-4 bg-slate-900 rounded-full border border-slate-700 overflow-hidden relative shadow-inner order-2">
+                             <div class="h-full bg-gradient-to-r from-red-600 to-red-500 transition-all duration-300" 
+                                  :style="{ width: (enemyState.hp / enemyState.maxHp * 100) + '%' }"></div>
+                             <span class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white shadow-black drop-shadow-md">
+                                {{ enemyState.hp }} / {{ enemyState.maxHp }}
+                             </span>
                         </div>
-                        <span class="text-white font-bold">{{ enemyState.hp }} HP</span>
-                         <div class="w-24 h-24 rounded-full border-4 border-red-500 bg-slate-800 flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(239,68,68,0.5)]">
+
+                        <!-- ATB -->
+                        <div class="w-24 h-1.5 bg-slate-900 rounded-full border border-slate-700 overflow-hidden relative mt-1 order-3">
+                            <div class="h-full bg-yellow-400 shadow-[0_0_5px_rgba(250,204,21,0.8)] transition-all duration-100 ease-linear"
+                                 :style="{ width: getAtbProgress('enemy') + '%' }"></div>
+                        </div>
+
+                         <div class="w-24 h-24 rounded-full border-4 border-red-500 bg-slate-800 flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(239,68,68,0.5)] z-10 order-1">
                             <span class="text-4xl">🐺</span>
+                        </div>
+                        <div class="absolute -top-6 text-red-500 font-bold text-sm bg-black/50 px-2 rounded border border-red-500/30">
+                            {{ enemyState.name }}
                         </div>
                     </div>
 
@@ -281,13 +337,18 @@ function skip() {
                              </span>
                         </div>
                     </div>
-                </div>
+                </div> <!-- End inner wrapper -->
+                </div> <!-- End visual field -->
 
                 <!-- Text Log Side Panel -->
-                <div class="w-64 bg-slate-950/90 border border-slate-800 rounded-lg p-4 flex flex-col overflow-hidden">
-                    <h3 class="text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider">Combat Log</h3>
-                    <div class="flex-1 overflow-y-auto space-y-1 text-xs font-mono scrollbar-hide" ref="logContainer">
-                        <div v-for="(event, i) in battleEvents.slice(0, processedEventIndex)" :key="i" class="border-b border-slate-800/50 pb-1">
+                <div class="w-72 bg-slate-950/90 border-l border-slate-700 flex flex-col shrink-0">
+                    <div class="p-4 border-b border-slate-800 bg-slate-900/50">
+                        <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                            <span>📜</span> Event Log
+                        </h3>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-4 space-y-1 text-xs font-mono scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900" ref="logContainer">
+                        <div v-for="(event, i) in battleEvents.slice(0, processedEventIndex)" :key="i" class="border-b border-slate-800/50 pb-1 last:border-0 animation-slide-in">
                              <span :class="event.attacker_id === battleData?.participants.hero.id ? 'text-green-400' : 'text-red-400'" class="font-bold">
                                  {{ event.attacker_id === battleData?.participants.hero.id ? 'Hero' : enemyState.name }}
                              </span>
