@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use App\Models\Character;
+use App\Models\ItemInstance;
 
 class User extends Authenticatable
 {
@@ -22,7 +24,18 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'global_warehouse_slots',
     ];
+
+    public function characters()
+    {
+        return $this->hasMany(Character::class);
+    }
+
+    public function items()
+    {
+        return $this->morphMany(ItemInstance::class, 'owner');
+    }
 
     /**
      * The attributes that should be hidden for serialization.
