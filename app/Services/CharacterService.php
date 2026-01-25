@@ -8,6 +8,9 @@ use App\Models\CharacterStats;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
+class CharacterService
+{
+
     protected ItemGeneratorService $itemGenService;
 
     public function __construct(ItemGeneratorService $itemGenService)
@@ -39,9 +42,9 @@ use Illuminate\Support\Facades\DB;
 
             // Starter Items
             $starterTemplates = \App\Models\ItemTemplate::where('min_level', 1)
-                ->where(function($q) use ($class) {
+                ->where(function ($q) use ($class) {
                     $q->where('class_restriction', $class)
-                      ->orWhereNull('class_restriction');
+                        ->orWhereNull('class_restriction');
                 })
                 ->get();
 

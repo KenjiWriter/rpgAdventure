@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
-import axios from 'axios';
+import { useForm } from '@inertiajs/vue3';
+
 import { Shield, Sparkles, Sword, Info } from 'lucide-vue-next';
 
-const name = ref('');
-const selectedClass = ref('');
-const loading = ref(false);
-const error = ref('');
+const form = useForm({
+    name: '',
+    class: '',
+});
+
+const selectedClass = ref(''); // Keep for UI selection logic mapping to form.class
 
 const classes = [
     {
@@ -36,27 +39,21 @@ const classes = [
     }
 ];
 
-async function submit() {
-    if (!name.value || !selectedClass.value) {
-        error.value = "Please choose a name and class.";
-        return;
+function selectClass(id: string) {
+    selectedClass.value = id;
+    form.class = id;
+}
+
+function submit() {
+    if (!form.name || !form.class) {
+        return; // Add UI error handling if needed, or rely on html inputs but for button disable
     }
     
-    loading.value = true;
-    error.value = '';
-
-    try {
-        await axios.post('/api/character', {
-            name: name.value,
-            class: selectedClass.value
-        });
-        
-        window.location.href = '/'; 
-    } catch (e: any) {
-        error.value = e.response?.data?.message || 'Failed to create character.';
-    } finally {
-        loading.value = false;
-    }
+    form.post(route('character.store'), {
+        onSuccess: () => {
+            // Redirect handled by backend
+        }
+    });
 }
 </script>
 
@@ -76,8 +73,9 @@ async function submit() {
                     <!-- Name Input -->
                     <div>
                         <label class="block text-sm font-bold text-slate-300 mb-2">Character Name</label>
-                        <input v-model="name" type="text" placeholder="Enter name..." 
+                        <input v-model="form.name" type="text" placeholder="Enter name..." 
                             class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-colors text-lg" />
+                        <div v-if="form.errors.name" class="text-red-500 text-sm mt-1">{{ form.errors.name }}</div>
                     </div>
 
                     <!-- Class Grid -->
@@ -85,7 +83,7 @@ async function submit() {
                         <label class="block text-sm font-bold text-slate-300 mb-2">Select Class</label>
                         <div class="grid gap-4">
                             <button v-for="cls in classes" :key="cls.id"
-                                @click="selectedClass = cls.id"
+                                @click="selectClass(cls.id)"
                                 class="flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-200 text-left group"
                                 :class="selectedClass === cls.id ? 'bg-slate-800 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.3)]' : 'bg-slate-900/50 border-slate-800 hover:bg-slate-800 hover:border-slate-600'"
                             >
@@ -100,6 +98,7 @@ async function submit() {
                                     <div class="w-4 h-4 rounded-full bg-indigo-500"></div>
                                 </div>
                             </button>
+                            <div v-if="form.errors.class" class="text-red-500 text-sm mt-1">{{ form.errors.class }}</div>
                         </div>
                     </div>
                 </div>
@@ -114,7 +113,7 @@ async function submit() {
                     </div>
 
                     <h2 class="text-2xl font-bold text-white mb-2">
-                        {{ name || 'Unknown Hero' }}
+                        {{ form.name || 'Unknown Hero' }}
                     </h2>
                     <p class="text-indigo-400 font-mono text-sm mb-6">
                         {{ selectedClass ? classes.find(c => c.id === selectedClass)?.name : 'Class Undecided' }}
@@ -126,13 +125,9 @@ async function submit() {
                     
                     <div class="flex-1"></div>
 
-                    <div v-if="error" class="mb-4 text-red-500 text-sm bg-red-900/20 px-4 py-2 rounded">
-                        {{ error }}
-                    </div>
-
-                    <button @click="submit" :disabled="loading"
+                    <button @click="submit" :disabled="form.processing"
                         class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg shadow-lg border-t border-indigo-400 transition-all">
-                        {{ loading ? 'Forging...' : 'Create Character' }}
+                        {{ form.processing ? 'Forging...' : 'Create Character' }}
                     </button>
                     
                 </div>

@@ -17,7 +17,7 @@ class CharacterController extends Controller
         $this->characterService = $characterService;
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request): \Illuminate\Http\RedirectResponse
     {
         $validated = $request->validate([
             'name' => 'required|string|min:3|max:20|unique:characters,name',
@@ -26,21 +26,19 @@ class CharacterController extends Controller
 
         // Limit 1 character per user?
         if (auth()->user()->characters()->exists()) {
-            return response()->json(['message' => 'You already have a character.'], 400);
+            return redirect()->route('home');
         }
 
-        $character = $this->characterService->createCharacter(
+        $this->characterService->createCharacter(
             auth()->user(),
             $validated['name'],
             CharacterClass::from($validated['class'])
         );
 
-        return response()->json([
-            'message' => 'Character created successfully!',
-            'character_id' => $character->id
-        ], 201);
+        return redirect()->route('home');
     }
 
+    public function show(string $id): JsonResponse
     {
         $character = Character::with([
             'stats',

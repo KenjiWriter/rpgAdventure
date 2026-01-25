@@ -28,6 +28,10 @@ Route::get('/create-character', function () {
     return Inertia::render('CreateCharacter');
 })->middleware(['auth', 'verified'])->name('character.create');
 
+Route::post('/character', [\App\Http\Controllers\CharacterController::class, 'store'])
+    ->middleware(['auth', 'verified'])
+    ->name('character.store');
+
 Route::get('dashboard', function () {
     return redirect()->route('home');
 })->middleware(['auth', 'verified'])->name('dashboard');
