@@ -17,6 +17,7 @@ class CharacterStats extends Model
         'resistance_fire',
         'resistance_water',
         'resistance_earth',
+        'attack_speed',
         'computed_stats',
     ];
 

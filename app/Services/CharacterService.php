@@ -92,6 +92,10 @@ class CharacterService
             'defense' => 0
         ];
 
+        // Initialize Attack Speed
+        $totalStats['attack_speed'] = $baseStats->attack_speed ?? 1.0;
+        $attackSpeedPercent = 0;
+
         // Iterate over equipped items
         $equippedItems = $character->items()
             ->whereIn('slot_id', array_column(\App\Enums\ItemSlot::cases(), 'value'))
@@ -118,12 +122,18 @@ class CharacterService
                 // Base Stats (JSON)
                 if ($item->template->base_stats) {
                     foreach ($item->template->base_stats as $key => $value) {
-                        // Ensure we don't overwrite if it exists, assume addition?
-                        // Base stats on items usually add to totals.
-                        $upgradedValue = (int) ($value * $multiplier);
-                        if (!isset($totalStats[$key]))
-                            $totalStats[$key] = 0;
-                        $totalStats[$key] += $upgradedValue;
+                        $upgradedValue = $value * $multiplier; // Float for precision first
+
+                        // Handle Special Stats
+                        if ($key === 'attack_speed') {
+                            $totalStats['attack_speed'] += $upgradedValue;
+                        } elseif ($key === 'attack_speed_percent') {
+                            $attackSpeedPercent += $upgradedValue;
+                        } else {
+                            if (!isset($totalStats[$key]))
+                                $totalStats[$key] = 0;
+                            $totalStats[$key] += (int) $upgradedValue;
+                        }
                     }
                 }
             }
@@ -133,13 +143,25 @@ class CharacterService
                 foreach ($item->bonuses as $bonus) {
                     if (isset($bonus['type']) && isset($bonus['value'])) {
                         $key = $bonus['type'];
-                        if (!isset($totalStats[$key]))
-                            $totalStats[$key] = 0;
-                        $totalStats[$key] += $bonus['value'];
+
+                        if ($key === 'attack_speed') {
+                            $totalStats['attack_speed'] += $bonus['value'];
+                        } elseif ($key === 'attack_speed_percent') {
+                            $attackSpeedPercent += $bonus['value'];
+                        } else {
+                            if (!isset($totalStats[$key]))
+                                $totalStats[$key] = 0;
+                            $totalStats[$key] += $bonus['value'];
+                        }
                     }
                 }
             }
         }
+
+        // Final Attack Speed Calculation
+        // Formula: (Base + Flat) * (1 + Percent/100)
+        // Ensure minimum 0.1 speed
+        $totalStats['attack_speed'] = max(0.1, $totalStats['attack_speed'] * (1 + ($attackSpeedPercent / 100)));
 
         // Final Damage Calculation
         // Formula: (MainStat * 1.5) + WeaponDamage
@@ -160,15 +182,11 @@ class CharacterService
         $totalStats['damage_max'] = max(2, $totalStats['damage_max'] + $statBonus);
 
         // Save computed stats
-        // We do NOT update the base columns (strength, etc) in DB, only computed_stats JSON.
-        // But wait, are we separating base vs total?
-        // The CharacterStats model has columns for strength. 
-        // If we update those columns, we double count next time.
-        // We must ONLY update `computed_stats` column. 
-        // `strength` column is the allocated/base strength.
-        // `computed_stats` is the transient total.
-
-        $baseStats->update(['computed_stats' => $totalStats]);
+        // Update both JSON and the separate column for query performance
+        $baseStats->update([
+            'attack_speed' => $totalStats['attack_speed'],
+            'computed_stats' => $totalStats
+        ]);
 
         return $totalStats;
     }

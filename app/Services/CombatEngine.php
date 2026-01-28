@@ -68,7 +68,13 @@ class CombatEngine
             // Check Death
             if ($target->isDead()) {
                 $winner = $actor->id;
-                $log[] = ['tick' => round($timestamp), 'type' => 'death', 'target' => $target->name, 'message' => "{$target->name} has been defeated!"];
+                $log[] = [
+                    'tick' => round($timestamp),
+                    'type' => 'death',
+                    'defender_id' => $target->id,
+                    'target' => $target->name,
+                    'message' => "{$target->name} has been defeated!"
+                ];
                 break;
             }
 
@@ -115,11 +121,14 @@ class CombatEngine
         }
 
         // 4. Mitigation
-        // Defense reduces damage flat? or percent?
-        // MMORPG style: Dmg * (100 / (100 + Def))? -> Diminishing returns.
-        // Let's use simple reduction for now: Damage - (Defense / 2). Min 1.
-        $mitigation = (int) ($defender->defense / 2);
+        // Defense reduces damage flat.
+        // Formula: max(1, Damage - Defense)
+        $mitigation = $defender->defense;
         $finalDmg = max(1, $rawDmg - $mitigation);
+
+        // Calculate Elemental (Placeholder if needed)
+        // $elementalMod = ...
+        // $finalDmg *= $elementalMod;
 
         $defender->takeDamage($finalDmg);
 

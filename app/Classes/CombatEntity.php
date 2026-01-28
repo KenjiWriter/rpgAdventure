@@ -28,6 +28,7 @@ class CombatEntity
 
     // State
     public float $nextActionAt = 0; // ms
+    public float $attackSpeed = 1.0;
 
     public function __construct($entity)
     {
@@ -46,16 +47,21 @@ class CombatEntity
 
         $stats = $char->stats->computed_stats;
 
+        // Base 1.0, DB column added to 'character_stats' but computed_stats might not be refreshed yet.
+        // Also fallback to the direct column if not in computed dict?
+        // Actually, logic usually syncs DB stats to computed_stats JSON.
+        // For now, let's grab from DB relation if not in JSON, but better to assume JSON is SSOT.
+        // Except we just added the column, so existing JSONs don't have it.
+        // We should probably rely on the `$char->stats->attack_speed` column.
+        $this->attackSpeed = (float) ($char->stats->attack_speed ?? 1.0);
+
         $this->maxHp = $stats['max_hp'] ?? 100;
         $this->currentHp = $this->maxHp; // Start full for sim
 
         $this->minDmg = $stats['damage_min'] ?? 1;
         $this->maxDmg = $stats['damage_max'] ?? 2;
 
-        // Base Speed + Bonus? Char has no base speed col, maybe Class base?
-        // Let's assume stats have 'speed' or 'dexterity' impact.
-        // Or assume base 10 + bonuses.
-        $this->speed = 10 + ($stats['speed_bonus'] ?? 0);
+        $this->speed = 10 + ($stats['speed_bonus'] ?? 0); // Deprecated? Kept for avoid break
 
         $this->defense = $stats['defense'] ?? 0;
 
@@ -84,6 +90,8 @@ class CombatEntity
         $this->maxDmg = $monster->max_dmg;
 
         $this->speed = $monster->speed;
+        $this->attackSpeed = 1.0 + ($monster->speed * 0.01); // Approximation for monsters using speed
+
         $this->defense = 0; // Monsters usually low armor, just HP
 
         // Monsters need derived accuracy/evasion? 
@@ -119,10 +127,9 @@ class CombatEntity
 
     public function getAttackInterval(): float
     {
-        // Formula: 2000ms / (1 + Speed*0.01)
-        // Using Speed property which for Character is ~10 + Bonuses.
-        // 10 Speed -> 1.1x -> 1818ms.
-        // 100 Speed -> 2.0x -> 1000ms.
-        return 2000 / (1 + ($this->speed * 0.01));
+        // 1000ms / attacks_per_second
+        if ($this->attackSpeed <= 0)
+            return 3000;
+        return 3000 / $this->attackSpeed;
     }
 }

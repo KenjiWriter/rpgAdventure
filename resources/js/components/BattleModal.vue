@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue';
 import { usePlayerStore } from '../stores/usePlayerStore';
+import ItemTooltip from './ItemTooltip.vue';
+
+
 
 const store = usePlayerStore();
 
@@ -189,7 +192,15 @@ function applyEvent(event: any) {
     }
 
     if (event.type === 'death') {
-        // Animation?
+        const isHeroDead = event.defender_id ? 
+            event.defender_id === battleData.value?.participants.hero.id :
+            event.target === battleData.value?.participants.hero.name; // Fallback
+
+        if (isHeroDead) {
+            heroState.value.hp = 0;
+        } else {
+            enemyState.value.hp = 0;
+        }
     }
 
     setTimeout(() => {
@@ -400,9 +411,7 @@ function getHpPercentage(current: number, max: number) {
                          class="w-16 h-16 bg-slate-800 border-2 border-green-500 rounded flex items-center justify-center relative group cursor-help">
                          <span class="text-2xl">⚔️</span>
                          <!-- Tooltip -->
-                         <div class="absolute bottom-full mb-2 hidden group-hover:block w-48 bg-black border border-slate-600 p-2 text-xs rounded z-50">
-                            New Item!
-                         </div>
+                         <ItemTooltip :item="item" class="hidden group-hover:block" />
                     </div>
                 </div>
 
