@@ -60,6 +60,17 @@ Items can be refined from Level 0 to 10 (ST. I - X) using `UpgradeService`.
 > **Design Note: Integer Rounding**
 > Since the engine uses Integers for all stats, low-value stats (e.g., "2 Damage") may not visually increase for the first few upgrade levels (2 * 1.1 = 2.2 -> 2). This is expected behavior; the math works correctly and becomes visible as base stats or upgrade levels increase.
 
+
+### Stable & Mount System
+Players can rent mounts to significantly reduce travel time on missions.
+- **Rental**: Mounts are rented for 7 days using Gold.
+- **Mechanic**: Active mounts apply a percentage reduction to mission duration (e.g., 50% reduction).
+- **Tiers**:
+    - **Donkey**: 1,000 Gold (-25% Time)
+    - **Horse**: 5,000 Gold (-50% Time)
+    - **Wyvern**: 25,000 Gold (-65% Time)
+    - **Griffin**: 100,000 Gold (-80% Time)
+
 ### Polymorphic Inventory
 Items are stored in a single `item_instances` table using a polymorphic relationship:
 -   **Owner**: Can be `Character` (Backpack/Equipment) or `User` (Warehouse).
@@ -131,6 +142,15 @@ These totals are cached in `character_stats.computed_stats` to avoid expensive r
     -   **Body**: `{ "item_instance_id": "uuid" }`
     -   **Logic**: Deducts Gold/Materials -> Upgrades Level -> Returns new stats.
 
+### Stable & Mounts
+-   `GET /api/mounts`
+    -   Returns list of available mounts and their stats.
+-   `POST /api/mounts/rent`
+    -   **Body**: `{ "character_id": "uuid", "mount_type": "string" }`
+    -   Rents a mount for 7 days. Replaces existing mount.
+-   `GET /api/mounts/active`
+    -   Returns currently active mount and expiration time.
+
 ---
 
 ## 🚀 Development Guide
@@ -185,7 +205,8 @@ php artisan verify:forge
     -   [x] **Missions**: Turn-based/Timer-based questing system.
     -   [x] **Combat**: Time-based Deterministic Engine (Logic).
     -   [x] **Combat UI**: Visual Replay Modal (FCT, Animations).
-    -   [ ] **Merchant**: Buying/Selling items.
+    -   [x] **Merchant**: Buying/Selling items.
+    -   [x] **Stable**: Mount Rental System.
 -   [ ] **Phase 5: Social & Economy**:
     -   **Auction House**: Player-to-player trading.
     -   **Clans**: Group events and wars.
