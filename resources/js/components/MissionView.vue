@@ -152,7 +152,22 @@ function formatTime(sec: number) {
             <div v-for="map in maps" :key="map.id" class="flex justify-between items-center p-3 bg-slate-800/50 hover:bg-slate-700/50 rounded border border-slate-700 transition-colors">
                 <div>
                     <div class="font-semibold text-slate-200">{{ map.name }}</div>
-                    <div class="text-xs text-slate-500">Min Lvl: {{ map.min_level }} • {{ getDifficulty(map.min_level) }}</div>
+                    <div class="text-xs text-slate-500 flex items-center gap-2">
+                        <span>Min Lvl: {{ map.min_level }}</span>
+                        <span>•</span>
+                        <span>{{ getDifficulty(map.min_level) }}</span>
+                        <span>•</span>
+                        <!-- Duration Display -->
+                         <div class="flex items-center gap-1">
+                             <Clock class="w-3 h-3" />
+                             <span :class="{'line-through text-slate-600': store.activeMount}">
+                                 {{ Math.min(120, 30 + (map.min_level * 5)) }}s
+                             </span>
+                             <span v-if="store.activeMount" class="text-green-400 font-bold">
+                                 {{ Math.round(Math.min(120, 30 + (map.min_level * 5)) * (1 - (store.activeMount.details?.reduction_percent || 0)/100)) }}s
+                             </span>
+                         </div>
+                    </div>
                 </div>
                 
                 <button @click="startMission(map.id)" 

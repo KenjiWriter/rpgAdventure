@@ -25,6 +25,19 @@ Route::middleware(['auth', 'verified', \App\Http\Middleware\EnsureCharacterSelec
         return Inertia::render('QuestLog', ['characterId' => $character->id]);
     })->name('quests');
 
+    Route::get('/merchants', function () {
+        return Inertia::render('Merchant');
+    })->name('merchant.index');
+
+    // Stable & Mounts
+    Route::get('/stable', function () {
+        return Inertia::render('Stable');
+    })->name('stable.index');
+
+    Route::get('/api/mounts', [App\Http\Controllers\MountController::class, 'index']);
+    Route::get('/api/mounts/active', [App\Http\Controllers\MountController::class, 'active']);
+    Route::post('/api/mounts/rent', [App\Http\Controllers\MountController::class, 'rent']);
+
     Route::get('dashboard', function () {
         return redirect()->route('home');
     })->name('dashboard');

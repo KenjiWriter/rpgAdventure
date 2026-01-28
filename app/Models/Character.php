@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Character extends Model
 {
-    use HasUuids;
+    use HasUuids, \Illuminate\Database\Eloquent\Factories\HasFactory;
 
     protected $fillable = [
         'user_id',

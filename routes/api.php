@@ -13,4 +13,5 @@ Route::post('/inventory/move', [InventoryController::class, 'move']);
 
 Route::get('/maps', [MapController::class, 'index']);
 
+
 // Game logic moved to web.php for Session Auth

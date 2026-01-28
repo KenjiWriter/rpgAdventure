@@ -17,12 +17,18 @@ class MissionService
     protected ItemGeneratorService $itemGenService;
     protected CharacterService $charService;
     protected CombatEngine $combatEngine;
+    protected MountService $mountService;
 
-    public function __construct(ItemGeneratorService $itemGenService, CharacterService $charService, CombatEngine $combatEngine)
-    {
+    public function __construct(
+        ItemGeneratorService $itemGenService,
+        CharacterService $charService,
+        CombatEngine $combatEngine,
+        MountService $mountService
+    ) {
         $this->itemGenService = $itemGenService;
         $this->charService = $charService;
         $this->combatEngine = $combatEngine;
+        $this->mountService = $mountService;
     }
 
     public function startMission(Character $character, Map $map): Mission
@@ -45,8 +51,12 @@ class MissionService
         // Duration: 30-120s based on difficulty? Or fixed?
         // Prompt says "30-120 seconds based on map difficulty".
         // Let's say difficulty = map min level * 5 seconds + base 30?
-        $durationSeconds = 30 + ($map->min_level * 5);
-        $durationSeconds = min($durationSeconds, 120); // Cap at 120
+        $baseDurationSeconds = 30 + ($map->min_level * 5);
+        $baseDurationSeconds = min($baseDurationSeconds, 120); // Cap at 120
+
+        // Apply Mount Reduction
+        $activeMount = $this->mountService->getActiveMount($character);
+        $durationSeconds = $this->mountService->calculateReducedDuration($baseDurationSeconds, $activeMount);
 
         $now = now();
         $endsAt = $now->copy()->addSeconds($durationSeconds);

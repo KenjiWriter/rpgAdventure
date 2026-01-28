@@ -104,11 +104,15 @@ function stopTimer() {
         return diff > 3300000;
     });
 
+import ActiveMountDisplay from '../Components/ActiveMountDisplay.vue';
+import { Home } from 'lucide-vue-next';
+
     const navItems = [
         { name: 'Dashboard', icon: User, href: route('home') },
         { name: 'Map', icon: MapIcon, href: route('map') },
         { name: 'Quests', icon: Scroll, href: route('quests') },
         { name: 'Merchant', icon: ShoppingBag, href: route('merchant.index') },
+        { name: 'Stable', icon: Home, href: route('stable.index') },
     ];
     </script>
     
@@ -135,6 +139,9 @@ function stopTimer() {
                         <span class="text-xs text-amber-400 font-mono">{{ gold.toLocaleString() }} Gold</span>
                     </div>
                 </div>
+
+                <!-- Active Mount Display -->
+                 <ActiveMountDisplay class="ml-4" />
 
                 <!-- Bars -->
                 <div class="flex-1 max-w-xl mx-8 flex flex-col gap-2">

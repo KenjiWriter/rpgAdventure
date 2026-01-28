@@ -12,6 +12,7 @@ export const usePlayerStore = defineStore('player', {
         logs: [] as any[],
         quests: [] as any[],
         merchantExpiry: null as string | null,
+        activeMount: null as any,
     }),
 
     getters: {
@@ -115,6 +116,9 @@ export const usePlayerStore = defineStore('player', {
                 if (charRes.data.merchant_expires_at) {
                     this.merchantExpiry = charRes.data.merchant_expires_at;
                 }
+
+                // Check active mount
+                await this.fetchActiveMount(characterId);
             } catch (error) {
                 console.error('Failed to fetch player data:', error);
             }
@@ -225,6 +229,42 @@ export const usePlayerStore = defineStore('player', {
             } catch (error) {
                 console.error('Failed to claim mission:', error);
                 throw error;
+            }
+        },
+
+        async fetchActiveMount(characterId: string) {
+            try {
+                const response = await axios.get(`/api/mounts/active?character_id=${characterId}`);
+                if (response.data.active_mount) {
+                    this.activeMount = {
+                        ...response.data.active_mount,
+                        details: response.data.mount_details
+                    };
+                } else {
+                    this.activeMount = null;
+                }
+            } catch (error) {
+                console.error('Failed to fetch active mount:', error);
+            }
+        },
+
+        async rentMount(mountType: string) {
+            try {
+                const response = await axios.post('/api/mounts/rent', {
+                    character_id: this.character.id,
+                    mount_type: mountType
+                });
+
+                // Update gold and mount
+                this.character.gold = response.data.gold;
+                await this.fetchActiveMount(this.character.id);
+
+                const ui = (await import('./useUIStore')).useUIStore();
+                ui.addToast('Mount rented successfully!', 'success');
+            } catch (anyError: any) {
+                const ui = (await import('./useUIStore')).useUIStore();
+                ui.addToast(anyError.response?.data?.message || 'Failed to rent mount', 'error');
+                throw anyError;
             }
         },
 

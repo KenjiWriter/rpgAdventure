@@ -63,7 +63,13 @@ class CharacterService
 
     public function calculateTotalStats(Character $character): array
     {
-        // Start with base stats
+        // 1. Reset: Start with clean base stats from DB column or Hardcoded base? 
+        // CharacterStats table has 'strength', 'dexterity' etc. which are the "Base Points" + "Allocated Points".
+        // They should NOT include item bonuses yet.
+        // Assuming $character->stats returns the model with base values.
+
+        // Reload stats to ensure we have fresh base values if they were modified in memory?
+        // Actually, $character->stats is the relation.
         $baseStats = $character->stats;
 
         $totalStats = [
@@ -75,13 +81,15 @@ class CharacterService
             'resistance_fire' => $baseStats->resistance_fire,
             'resistance_water' => $baseStats->resistance_water,
             'resistance_earth' => $baseStats->resistance_earth,
-            // Derived stats
+            // Derived stats base
             'max_hp' => $baseStats->vitality * 10,
             'max_mana' => $baseStats->intelligence * 10,
 
-            // Initial placeholder, will be overwritten after adding item stats + scaling
             'damage_min' => 0,
             'damage_max' => 0,
+
+            // Explicitly initialize defense to avoid undefined key
+            'defense' => 0
         ];
 
         // Iterate over equipped items
@@ -90,65 +98,51 @@ class CharacterService
             ->get();
 
         foreach ($equippedItems as $item) {
-            // Apply item base stats (Attributes)
-            // With Upgrade Scaling: +10% per level
             if ($item->template) {
                 $multiplier = 1 + ($item->upgrade_level * 0.10);
 
-                // Base Damage / Defense
+                // Base Damage
                 if ($item->template->base_damage_min) {
                     $dmgMin = (int) ($item->template->base_damage_min * $multiplier);
                     $dmgMax = (int) (($item->template->base_damage_max ?: $item->template->base_damage_min) * $multiplier);
-
-                    // Initialize if not set
-                    if (!isset($totalStats['damage_min']))
-                        $totalStats['damage_min'] = 0;
-                    if (!isset($totalStats['damage_max']))
-                        $totalStats['damage_max'] = 0;
 
                     $totalStats['damage_min'] += $dmgMin;
                     $totalStats['damage_max'] += $dmgMax;
                 }
 
+                // Base Defense
                 if ($item->template->base_defense) {
-                    if (!isset($totalStats['defense']))
-                        $totalStats['defense'] = 0;
                     $totalStats['defense'] += (int) ($item->template->base_defense * $multiplier);
                 }
 
+                // Base Stats (JSON)
                 if ($item->template->base_stats) {
                     foreach ($item->template->base_stats as $key => $value) {
-                        // Fix key mapping for frontend if needed, but backend service should use standard keys
-                        // For now assume base_stats keys are valid (e.g. 'dodge', 'speed')
+                        // Ensure we don't overwrite if it exists, assume addition?
+                        // Base stats on items usually add to totals.
                         $upgradedValue = (int) ($value * $multiplier);
-                        if (isset($totalStats[$key])) {
-                            $totalStats[$key] += $upgradedValue;
-                        } else {
-                            $totalStats[$key] = $upgradedValue;
-                        }
+                        if (!isset($totalStats[$key]))
+                            $totalStats[$key] = 0;
+                        $totalStats[$key] += $upgradedValue;
                     }
                 }
             }
 
-            // ... bonuses ...
+            // Random Bonuses
             if ($item->bonuses) {
                 foreach ($item->bonuses as $bonus) {
                     if (isset($bonus['type']) && isset($bonus['value'])) {
                         $key = $bonus['type'];
-                        // Handle damage/defense bonuses if they exist
-                        if (isset($totalStats[$key])) {
-                            $totalStats[$key] += $bonus['value'];
-                        } else {
-                            $totalStats[$key] = $bonus['value'];
-                        }
+                        if (!isset($totalStats[$key]))
+                            $totalStats[$key] = 0;
+                        $totalStats[$key] += $bonus['value'];
                     }
                 }
             }
         }
 
-        // ...
-
-        // Final Damage
+        // Final Damage Calculation
+        // Formula: (MainStat * 1.5) + WeaponDamage
         $mainStatValue = match ($character->class) {
             CharacterClass::WARRIOR => $totalStats['strength'],
             CharacterClass::ASSASSIN => $totalStats['dexterity'],
@@ -156,10 +150,23 @@ class CharacterService
             default => $totalStats['strength'],
         };
 
-        $statBonus = (int) ($mainStatValue * 0.5);
-        // Base Unarmed is 1-2
+        // Base Unarmed is 1-2. We add this TO the weapon damage.
+        // If weapon damage is 0, they do 1-2 + StatBonus.
+        // Prompt Formula: (Strength * 1.5) + Weapon_Damage
+        // Note: StatBonus was previously 0.5. Now 1.5.
+        $statBonus = (int) ($mainStatValue * 1.5);
+
         $totalStats['damage_min'] = max(1, $totalStats['damage_min'] + $statBonus);
-        $totalStats['damage_max'] = max(2, $totalStats['damage_max'] + $statBonus + 1); // +1 variance
+        $totalStats['damage_max'] = max(2, $totalStats['damage_max'] + $statBonus);
+
+        // Save computed stats
+        // We do NOT update the base columns (strength, etc) in DB, only computed_stats JSON.
+        // But wait, are we separating base vs total?
+        // The CharacterStats model has columns for strength. 
+        // If we update those columns, we double count next time.
+        // We must ONLY update `computed_stats` column. 
+        // `strength` column is the allocated/base strength.
+        // `computed_stats` is the transient total.
 
         $baseStats->update(['computed_stats' => $totalStats]);
 
