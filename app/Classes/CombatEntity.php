@@ -132,4 +132,15 @@ class CombatEntity
             return 3000;
         return 3000 / $this->attackSpeed;
     }
+
+    public function getCritChance(): float
+    {
+        // Base 5% + (Accuracy * 0.1)%
+        return 5 + ($this->accuracy * 0.1);
+    }
+
+    public function getCritMultiplier(): float
+    {
+        return 1.5;
+    }
 }

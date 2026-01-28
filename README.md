@@ -107,10 +107,11 @@ These totals are cached in `character_stats.computed_stats` to avoid expensive r
 ### Combat Formulas
 | Logic | Formula |
 | :--- | :--- |
-| **Attack Interval** | `2000ms / (1 + Dex * 0.01)` |
+| **Attack Interval** | `3000ms / (Base + Flat) * (1 + Bonus%)` |
 | **Hit Chance** | `Accuracy / (Accuracy + Evasion)` (conceptually) or `85 + (Acc - Eva)` (implemented) |
 | **Damage** | `max(1, (Atk - Def)) * ElementalModifiers` |
 | **Crit Chance** | `5% + (Accuracy * 0.1)%` |
+| **Attack Speed** | Base 1.0 (3s delay). Higher is faster. includes Flat & Percent modifiers. |
 
 ---
 
@@ -193,6 +194,12 @@ php artisan verify:core
 php artisan verify:combat
 php artisan verify:forge
 ```
+
+### Balancing Tools
+Use these commands to verify game balance and scaling:
+-   `php artisan test:map {id}`: Simulates combat between a standard player and all monsters on a map.
+-   `php artisan verify:balance`: Batch checks all monsters against the CP Level Curve.
+-   `php artisan test:item {id}`: Checks if an item's valid power delta fits the expected curve.
 
 ---
 

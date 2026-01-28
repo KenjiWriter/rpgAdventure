@@ -8,15 +8,15 @@ use App\Models\Monster;
 
 class CombatEngine
 {
-    public function simulate(Character $character, Monster $monster, ?int $seed = null): array
+    public function simulate(Character|CombatEntity $attacker, Monster|CombatEntity $defender, ?int $seed = null): array
     {
         // 1. Seeding
         $seed = $seed ?? rand();
         mt_srand($seed);
 
         // 2. Setup Entities
-        $hero = new CombatEntity($character);
-        $enemy = new CombatEntity($monster);
+        $hero = $attacker instanceof CombatEntity ? $attacker : new CombatEntity($attacker);
+        $enemy = $defender instanceof CombatEntity ? $defender : new CombatEntity($defender);
 
         // 3. Timeline Setup
         // Sort by next action. Initial action is calculated based on interval logic?
@@ -113,11 +113,11 @@ class CombatEngine
         // 3. Crit Check
         // Placeholder crit chance based on accuracy/dex? Or need crit stat.
         // Assuming base 5% + (Accuracy * 0.1)%
-        $critChance = 5 + ($attacker->accuracy * 0.1);
+        $critChance = $attacker->getCritChance();
         $isCrit = mt_rand(1, 100) <= $critChance;
 
         if ($isCrit) {
-            $rawDmg = (int) ($rawDmg * 1.5);
+            $rawDmg = (int) ($rawDmg * $attacker->getCritMultiplier());
         }
 
         // 4. Mitigation
